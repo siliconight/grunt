@@ -233,9 +233,13 @@ int main(int argc, char** argv) {
         if (bank_idx >= (int)banks.size()) bank_idx = 0;
     };
     refresh_banks();
-    // default selection to a word-capable bank if one exists
+    // default selection: prefer a bank named "starter" (ships speaking real
+    // words), else the first word-capable bank, else whatever's first.
     for (size_t i = 0; i < banks.size(); ++i)
-        if (bank_has_words(banks[i])) { bank_idx = (int)i; break; }
+        if (banks[i] == "starter") { bank_idx = (int)i; break; }
+    if (bank_idx == 0)
+        for (size_t i = 0; i < banks.size(); ++i)
+            if (bank_has_words(banks[i])) { bank_idx = (int)i; break; }
 
     // Generate-voices state
     std::string piper_cmd = find_piper();

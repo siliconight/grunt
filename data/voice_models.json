@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_comment": "Allowlist of license-cleared generator voice models. `generate` only uses models listed here unless --allow-unverified is passed. Each entry is diligence done ONCE, then enforced forever by the ship gate. Adding a model means you have read its license AND its training-data license and confirmed commercial + redistributable rights. NOT legal advice — good-faith reads of published model cards; confirm before a commercial release.",
+  "_comment": "Allowlist of license-cleared generator voice models. `generate` only uses models listed here unless --allow-unverified is passed. Each entry is diligence done ONCE, then enforced forever by the ship gate. Adding a model means you have read its license AND its training-data license and confirmed commercial + redistributable rights. NOT legal advice \u2014 good-faith reads of published model cards; confirm before a commercial release.",
   "models": [
     {
       "id": "piper-en_US-ljspeech",
@@ -13,7 +13,9 @@
       "dataset": "LJ Speech (https://keithito.com/LJ-Speech-Dataset/)",
       "dataset_license": "public domain",
       "voice_traits": "US English, female, single speaker, trained from scratch on public-domain data",
-      "notes": "Clean transitive chain: trained FROM SCRATCH on the public-domain LJ Speech corpus (not fine-tuned from a restricted base). Default female base. Verified vs published MODEL_CARD 2026-06; re-confirm before commercial release."
+      "notes": "Clean transitive chain: trained FROM SCRATCH on the public-domain LJ Speech corpus (not fine-tuned from a restricted base). Default female base. Verified vs published MODEL_CARD 2026-06; re-confirm before commercial release.",
+      "download_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx?download=true",
+      "download_url_json": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx.json?download=true"
     },
     {
       "id": "piper-en_US-norman",
@@ -26,7 +28,7 @@
       "dataset": "LibriVox public-domain recordings (~15.5h), compiled by Bryce Beattie",
       "dataset_license": "public domain",
       "voice_traits": "US English, male, single speaker, trained from scratch (1200 epochs, medium)",
-      "notes": "Default MALE base. Same creator as the LJ Speech voice (Bryce Beattie); trained FROM SCRATCH on public-domain LibriVox recordings, dedicated public domain, creator grants use for 'any legal and ethical purpose.' CAVEAT: provenance here is the creator's own attestation on his personal site (not an institutional HuggingFace model card like LJ Speech) — credible and same trusted source, but a personal statement; re-confirm before commercial release. Download norman.onnx + .onnx.json from source_url. Alternatives from same source: 'John' (finetuned from Kristin — extra chain link), 'Bryce' (creator's own voice, ~750 samples)."
+      "notes": "Default MALE base. Same creator as the LJ Speech voice (Bryce Beattie); trained FROM SCRATCH on public-domain LibriVox recordings, dedicated public domain, creator grants use for 'any legal and ethical purpose.' CAVEAT: provenance here is the creator's own attestation on his personal site (not an institutional HuggingFace model card like LJ Speech) \u2014 credible and same trusted source, but a personal statement; re-confirm before commercial release. Download norman.onnx + .onnx.json from source_url. Alternatives from same source: 'John' (finetuned from Kristin \u2014 extra chain link), 'Bryce' (creator's own voice, ~750 samples)."
     }
   ]
 }

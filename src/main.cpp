@@ -559,6 +559,74 @@ int cmd_coverage(int argc, char** argv) {
     return 0;
 }
 
+// fetch-voice — download a registered voice model's files to where grunt looks
+// for them, killing the manual "find the .onnx on a website" step. Only models
+// with a verified direct download_url are fetched; others print manual steps.
+int cmd_fetch_voice(int argc, char** argv) {
+    Args a = parse_args(argc, argv, 2);
+    std::string reg_path = a.get("registry", resource_path("data/voice_models.json"));
+    VoiceModelRegistry reg; std::string err;
+    if (!reg.load(reg_path, err)) { std::cerr << "registry: " << err << "\n"; return 1; }
+
+    std::string id = a.get("model");
+    if (id.empty()) {
+        std::cout << "usage: grunt fetch-voice --model <id>\n\nregistered voices:\n";
+        for (const auto& m : reg.all())
+            std::cout << "  " << m.id << "  ("
+                      << (m.download_url.empty() ? "manual download" : "auto-downloadable")
+                      << ")\n";
+        return 2;
+    }
+    const VoiceModel* m = reg.find(id);
+    if (!m) { std::cerr << "model '" << id << "' not in registry\n"; return 1; }
+
+    // destination: next to the binary, where generate/doctor resolve model_file
+    std::string dest = resource_path(m->model_file);
+    std::error_code ec;
+    if (std::filesystem::exists(dest, ec)) {
+        std::cout << "[ok] already present: " << dest << "\n";
+        return 0;
+    }
+
+    if (m->download_url.empty()) {
+        std::cout << "'" << id << "' has no machine-verifiable direct URL, so it's a manual\n"
+                     "download (to keep provenance honest). Get these from:\n  "
+                  << m->source_url << "\nand place next to grunt:\n  "
+                  << m->model_file << "\n  " << m->model_file << ".json\n";
+        return 1;
+    }
+
+    auto fetch = [](const std::string& url, const std::string& out) -> bool {
+        std::string cmd;
+#if defined(_WIN32)
+        cmd = "powershell -NoProfile -Command \"try { Invoke-WebRequest -Uri '"
+            + url + "' -OutFile '" + out + "' -UseBasicParsing } catch { exit 1 }\"";
+#else
+        cmd = "curl -fsSL '" + url + "' -o '" + out + "' || wget -q '" + url + "' -O '" + out + "'";
+#endif
+        return std::system(cmd.c_str()) == 0;
+    };
+
+    std::cout << "downloading " << id << " (" << m->license << ")...\n";
+    if (!fetch(m->download_url, dest)) {
+        std::cerr << "[X] download failed: " << m->download_url << "\n";
+        return 1;
+    }
+    if (!m->download_url_json.empty()) {
+        if (!fetch(m->download_url_json, dest + ".json")) {
+            std::cerr << "[X] model config (.json) download failed\n";
+            return 1;
+        }
+    }
+    if (!std::filesystem::exists(dest, ec)) {
+        std::cerr << "[X] file not present after download\n"; return 1;
+    }
+    std::cout << "[ok] fetched: " << dest << "\n"
+              << "now: grunt generate --units examples/barks.csv --voice voices/my_guards --model "
+              << id << "\n";
+    return 0;
+}
+
 // doctor — verify the environment for the generate path before you invest time
 // in it. Each check reports OK or a precise fix. The goal: turn "install piper,
 // download a model, hope, get a cryptic error" into a checklist that tells you
@@ -680,6 +748,7 @@ void usage() {
     "commands:\n"
     "  quickstart  render demo clips from the bundled bank (zero config)\n"
     "  doctor      check the environment for the generate path (--live to test)\n"
+    "  fetch-voice download a registered voice model (--model <id>)\n"
     "  synth       render one line to a clip (OGG/Vorbis default)\n"
     "  batch       bake a folder of named clips + bank.json from a CSV\n"
     "  generate    build a bank's units from a CC0/permissive TTS generator\n"
@@ -699,6 +768,7 @@ int main(int argc, char** argv) {
     if (cmd == "--version" || cmd == "-V") { std::cout << "grunt " << kGruntVersion << "\n"; return 0; }
     if (cmd == "quickstart") return cmd_quickstart(argc, argv);
     if (cmd == "doctor")     return cmd_doctor(argc, argv);
+    if (cmd == "fetch-voice") return cmd_fetch_voice(argc, argv);
     if (cmd == "synth")    return cmd_synth(argc, argv);
     if (cmd == "batch")    return cmd_batch(argc, argv);
     if (cmd == "generate") return cmd_generate(argc, argv);

@@ -91,6 +91,34 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
           cmake --build build --config Release
 
+      - name: Pre-bake starter word bank (real Piper, so first launch speaks)
+        shell: bash
+        run: |
+          # Download Piper (the engine) and the public-domain LJ voice, then bake
+          # the curated starter vocabulary into a real, gate-clean word bank that
+          # ships in the package — so a user hears English words with ZERO setup.
+          set -e
+          GRUNT=$(find build -name 'grunt.exe' | head -1)
+          # piper engine
+          curl -L -o piper.zip https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip
+          7z x -y piper.zip -opiper_dl >/dev/null
+          PIPER=$(find piper_dl -name 'piper.exe' | head -1)
+          export PATH="$(dirname "$PIPER"):$PATH"
+          # voice model via the new fetch-voice (downloads to the binary's dir)
+          cp data/voice_models.json "$(dirname "$GRUNT")/" 2>/dev/null || true
+          mkdir -p "$(dirname "$GRUNT")/data"; cp data/*.json "$(dirname "$GRUNT")/data/" 2>/dev/null || true
+          "$GRUNT" fetch-voice --model piper-en_US-ljspeech || true
+          # bake the starter bank
+          "$GRUNT" generate --units examples/starter_barks.csv \
+            --voice voices/starter --model piper-en_US-ljspeech || true
+          # verify it's gate-clean and actually has word units; if not, don't ship a broken bank
+          if [ -f voices/starter/metadata/units.json ] && grep -q '"type": "word"' voices/starter/metadata/units.json; then
+            "$GRUNT" verify --voice voices/starter || echo "warning: starter bank failed verify"
+            echo "STARTER_OK=1" >> "$GITHUB_ENV"
+          else
+            echo "starter bank not generated (piper/model issue) — package will ship demo bank only"
+          fi
+
       - name: Assemble package
         shell: bash
         run: |
@@ -111,7 +139,7 @@ jobs:
           # .bat files — window opens and closes instantly with no output)
           powershell -NoProfile -Command "$p='$pkg/setup.bat'; if (Test-Path $p) { (Get-Content $p -Raw) -replace \"`r`n\",\"`n\" -replace \"`n\",\"`r`n\" | Set-Content -NoNewline $p }"
           # a friendly launch note
-          printf 'Double-click grunt_gui.exe to start (uses the bundled grunt-noise demo bank).\nFirst launch: Windows may show a SmartScreen notice (unsigned app) -- click More info > Run anyway.\n\nTo hear REAL SPOKEN WORDS: double-click setup.bat once. It downloads the Piper\nspeech engine + a public-domain voice, builds a talking bank, and plays a word.\nThen in the GUI open "advanced" and point the bank at voices\\my_guards.\n\nNo install needed; everything stays in this folder.\n' > "$pkg/READ ME FIRST.txt"
+          printf 'Double-click grunt_gui.exe to start.\nFirst launch: Windows may show a SmartScreen notice (unsigned app) -- click More info > Run anyway.\n\nThe "starter" voice bank speaks REAL WORDS out of the box - just pick it in the\nVoice bank dropdown, choose a character, and Play. (The "heavy_brother" demo\nbank is intentionally grunts-only.)\n\nTo make your OWN words: use the Generate voices section in the app, or run\nsetup.bat. No install needed; everything stays in this folder.\n' > "$pkg/READ ME FIRST.txt"
           7z a "$pkg.zip" "$pkg"
           echo "GRUNT_WIN_ZIP=$pkg.zip" >> "$GITHUB_ENV"
 

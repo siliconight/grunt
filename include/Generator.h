@@ -21,6 +21,8 @@ struct VoiceModel {
     bool commercial_use = false;
     bool redistributable = false;
     std::string source_url;
+    std::string download_url;       // direct .onnx URL (empty = manual download)
+    std::string download_url_json;  // direct .onnx.json URL
 };
 
 class VoiceModelRegistry {

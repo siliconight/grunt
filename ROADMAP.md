@@ -257,6 +257,11 @@ Goal: usable by designers; clean handoff to gool.
       found relative to the binary, so a double-clicked app works (v0.12.0)
 - [x] Windows GUI package published by release CI (download → unzip →
       double-click `grunt_gui.exe`) (v0.12.0)
+- [x] `grunt fetch-voice` downloads a registered model (verified URL) to the
+      right place — removes the manual model hunt (v0.20.0)
+- [x] Bundled pre-baked "starter" word bank in the Windows package (CI bakes it
+      with real Piper + public-domain LJ voice) — real words with zero setup;
+      GUI defaults to it (v0.20.0)
 - [x] `setup.bat` one-click talking setup in the Windows package: fetches Piper
       + a public-domain voice, runs doctor, builds a bank, plays a word (v0.16.0)
 - [ ] macOS `.app` + Linux GUI packages in release CI (Windows done first)

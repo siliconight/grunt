@@ -25,6 +25,8 @@ bool VoiceModelRegistry::load(const std::string& path, std::string& err) {
             vm.commercial_use = m["commercial_use"].as_bool(false);
             vm.redistributable = m["redistributable"].as_bool(false);
             vm.source_url    = m["source_url"].as_string();
+            vm.download_url      = m["download_url"].as_string();
+            vm.download_url_json = m["download_url_json"].as_string();
             models_.push_back(std::move(vm));
         }
     } catch (const std::exception& e) {

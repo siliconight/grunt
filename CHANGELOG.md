@@ -4,6 +4,36 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.20.0] - 2026-06-16
+
+### Added (easier intelligible VO: fetch-voice + a bundled talking bank)
+- `grunt fetch-voice --model <id>`: downloads a registered voice model's files
+  to where grunt looks for them, removing the manual "find the .onnx on a
+  website" step. Models with a verified direct URL (LJ Speech) download
+  automatically; models without one (Norman) print exact manual instructions
+  rather than guessing a URL. Registry gains verified `download_url` fields.
+- **Bundled "starter" word bank**: the release CI now downloads Piper + the
+  public-domain LJ voice and pre-bakes a curated bark vocabulary
+  (`examples/starter_barks.csv` — hello/halt/intruder/reloading/cover/medic/...)
+  into a real, gate-clean word bank that ships in the Windows package. So a user
+  hears **real English words with zero setup** — pick "starter" in the bank
+  dropdown, choose a character, Play. (CI verifies it's gate-clean and has word
+  units before shipping; if Piper/model fetch fails, the package ships the demo
+  bank only rather than a broken bank.)
+- The GUI bank dropdown defaults to "starter" when present, so first launch is
+  words, not grunts.
+
+### Why
+- The remaining friction for intelligible VO was entirely the external Piper +
+  model dependency. `fetch-voice` removes the model hunt; the pre-baked starter
+  bank sidesteps Piper for first contact entirely — the audio is synthesized
+  once on CI (which has Piper) and shipped, so the user consumes ready speech.
+
+### Note — provenance
+- The starter bank is LJ-Speech-generated audio (public domain), baked by CI,
+  gate-clean. As always: good-faith license read, not legal advice; the ship
+  gate enforces commercial + redistributable before any clip is baked.
+
 ## [0.19.0] - 2026-06-16
 
 ### Added (GUI: bank dropdown + in-app voice generation)
