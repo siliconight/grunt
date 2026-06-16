@@ -58,3 +58,60 @@ jobs:
           name: grunt ${{ github.ref_name }}
           generate_release_notes: true
           files: ${{ steps.pkg.outputs.path }}
+
+  windows-gui:
+    # Build a double-click Windows package: grunt_gui.exe + CLI + data/ + the
+    # bundled demo bank, zipped and attached to the Release. Lets a non-builder
+    # download, unzip, and run the GUI. (Unsigned — first launch shows a
+    # SmartScreen notice; documented in SETUP.md. Signing needs a paid cert.)
+    needs: verify
+    name: "windows package ${{ github.ref_name }}"
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Vendor GUI deps (imgui, miniaudio, stb_image)
+        shell: bash
+        run: |
+          git clone --depth 1 https://github.com/ocornut/imgui third_party/imgui
+          mkdir -p third_party/miniaudio third_party/stb
+          curl -L https://raw.githubusercontent.com/mackron/miniaudio/master/miniaudio.h \
+            -o third_party/miniaudio/miniaudio.h
+          curl -L https://raw.githubusercontent.com/nothings/stb/master/stb_image.h \
+            -o third_party/stb/stb_image.h
+
+      - name: Install GLFW + libvorbis (vcpkg)
+        shell: bash
+        run: vcpkg install glfw3 libvorbis libogg
+
+      - name: Configure + build (GUI on)
+        shell: bash
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGRUNT_BUILD_GUI=ON \
+            -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+          cmake --build build --config Release
+
+      - name: Assemble package
+        shell: bash
+        run: |
+          pkg="grunt-${{ github.ref_name }}-windows"
+          mkdir -p "$pkg"
+          # binaries (location varies by generator; copy whatever built)
+          find build -name 'grunt_gui.exe' -exec cp {} "$pkg/" \;
+          find build -name 'grunt.exe'     -exec cp {} "$pkg/" \;
+          # runtime DLLs that vcpkg produced, next to the exe
+          find build -name '*.dll' -exec cp {} "$pkg/" \; || true
+          # bundled resources, resolved relative to the exe at runtime
+          cp -r data "$pkg/"
+          cp -r voices "$pkg/"
+          cp README.md SETUP.md "$pkg/" 2>/dev/null || true
+          # a friendly launch note
+          printf 'Double-click grunt_gui.exe to start.\nFirst launch: Windows may show a SmartScreen notice (unsigned app) — click More info > Run anyway.\nNo install needed; everything is in this folder.\n' > "$pkg/READ ME FIRST.txt"
+          7z a "$pkg.zip" "$pkg"
+          echo "GRUNT_WIN_ZIP=$pkg.zip" >> "$GITHUB_ENV"
+
+      - name: Attach Windows package to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          files: ${{ env.GRUNT_WIN_ZIP }}

@@ -36,6 +36,7 @@ add_executable(grunt
     src/Generator.cpp
     src/Character.cpp
     src/Vocalization.cpp
+    src/ResourcePath.cpp
     src/SyllablePlanner.cpp
     src/ProsodyPlanner.cpp
     src/UnitDatabase.cpp
@@ -80,6 +81,7 @@ add_executable(grunt_tests
     src/Generator.cpp
     src/Character.cpp
     src/Vocalization.cpp
+    src/ResourcePath.cpp
     src/SyllablePlanner.cpp
     src/ProsodyPlanner.cpp
     src/UnitDatabase.cpp
@@ -124,6 +126,7 @@ if(GRUNT_BUILD_GUI)
     src/Generator.cpp
     src/Character.cpp
     src/Vocalization.cpp
+    src/ResourcePath.cpp
         src/SyllablePlanner.cpp
         src/ProsodyPlanner.cpp
         src/UnitDatabase.cpp

@@ -236,6 +236,13 @@ Goal: usable by designers; clean handoff to gool.
 
 ## Cross-cutting / tech debt
 
+- [x] Executable-relative resource resolution (`ResourcePath`) — data/voices
+      found relative to the binary, so a double-clicked app works (v0.12.0)
+- [x] Windows GUI package published by release CI (download → unzip →
+      double-click `grunt_gui.exe`) (v0.12.0)
+- [ ] macOS `.app` + Linux GUI packages in release CI (Windows done first)
+- [ ] Code signing / notarization so launch shows no unsigned-app warning
+      (needs paid Apple Developer + Windows signing cert — B$ to provide)
 - [ ] Replace `LICENSE` placeholder with full Apache-2.0 text (copy from gool)
 - [ ] Record real owned voice banks to replace synthetic placeholder tones
 - [ ] Real-ABI verify OGG output + GUI on a Windows libvorbis build

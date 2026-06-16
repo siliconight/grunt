@@ -12,6 +12,7 @@
 #include "Generator.h"
 #include "Character.h"
 #include "Vocalization.h"
+#include "ResourcePath.h"
 
 #include <iostream>
 #include <fstream>
@@ -105,7 +106,7 @@ int cmd_synth(int argc, char** argv) {
     // were explicitly given). Pitch/gain layer onto the render.
     if (a.has("character")) {
         CharacterLibrary lib;
-        std::string cpath = a.get("characters", "data/characters.json");
+        std::string cpath = a.get("characters", resource_path("data/characters.json"));
         if (!lib.load(cpath, err)) { std::cerr << "characters: " << err << "\n"; return 1; }
         const CharacterPreset* cp = lib.find(a.get("character"));
         if (!cp) {
@@ -144,7 +145,7 @@ int cmd_synth(int argc, char** argv) {
     SynthResult res;
     if (a.has("effort")) {
         EffortLibrary elib;
-        std::string epath = a.get("efforts", "data/efforts.json");
+        std::string epath = a.get("efforts", resource_path("data/efforts.json"));
         if (!elib.load(epath, err)) { std::cerr << "efforts: " << err << "\n"; return 1; }
         const Effort* ef = elib.find(a.get("effort"));
         if (!ef) {
@@ -355,7 +356,7 @@ int cmd_generate(int argc, char** argv) {
                      "  --model must be a license-cleared id from the registry.\n";
         return 2;
     }
-    std::string registry_path = a.get("registry", "data/voice_models.json");
+    std::string registry_path = a.get("registry", resource_path("data/voice_models.json"));
     VoiceModelRegistry reg; std::string err;
     if (!reg.load(registry_path, err)) { std::cerr << "registry: " << err << "\n"; return 1; }
 
@@ -443,13 +444,12 @@ static const char* kGruntVersion = "0.10.0";
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.
 std::string find_demo_bank() {
-    const char* candidates[] = {
-        "voices/heavy_brother",
-        "../voices/heavy_brother",
-        "../../voices/heavy_brother",
-    };
-    for (const char* c : candidates) {
-        std::error_code ec;
+    std::error_code ec;
+    std::string p = resource_path("voices/heavy_brother");
+    if (std::filesystem::exists(p + "/voice.json", ec)) return p;
+    // extra CWD-relative fallbacks for unusual build layouts
+    for (const char* c : {"voices/heavy_brother", "../voices/heavy_brother",
+                          "../../voices/heavy_brother"}) {
         if (std::filesystem::exists(std::string(c) + "/voice.json", ec)) return c;
     }
     return "";
@@ -504,7 +504,7 @@ int cmd_quickstart(int argc, char** argv) {
         // apply character preset if named
         if (d.character) {
             CharacterLibrary lib;
-            if (lib.load("data/characters.json", err)) {
+            if (lib.load(resource_path("data/characters.json"), err)) {
                 if (const CharacterPreset* cp = lib.find(d.character)) {
                     fx = cp->fx_preset;
                     emo = emotion_from_string(cp->emotion_bias);
@@ -519,7 +519,7 @@ int cmd_quickstart(int argc, char** argv) {
 
         if (d.effort) {
             EffortLibrary el;
-            if (el.load("data/efforts.json", err)) {
+            if (el.load(resource_path("data/efforts.json"), err)) {
                 if (const Effort* ef = el.find(d.effort)) {
                     PhonemeSeq seq = effort_to_phonemes(*ef);
                     res = engine.synth_vocalization(seq, ef->intensity, fx, 0xC0FFEE, opts);
@@ -542,7 +542,7 @@ int cmd_quickstart(int argc, char** argv) {
         }
     }
 
-    std::cout << "\n" << made << " clips in ./" << out_dir << "/  — play them!\n\n"
+    std::cout << "\n" << made << " clips in " << out_dir << "/  — play them!\n\n"
               << "next steps:\n"
               << "  • one line, your text:   grunt synth --text \"take cover\" --character grunt --voice "
               << bank << " --out test." << ext << "\n"
@@ -580,7 +580,7 @@ int cmd_coverage(int argc, char** argv) {
     TextNormalizer norm;
     SyllablePlanner syl;
     PhonemeMapper mapper;
-    { std::string d; for (const char* p : {"data/cmudict.dict","data/sample.dict"}) if (mapper.load_dictionary(p,d)) break; }
+    { std::string d; for (const char* p : {"data/cmudict.dict","data/sample.dict"}) if (mapper.load_dictionary(resource_path(p),d)) break; }
 
     int total = 0, syll_hit = 0, phon_hit = 0, grunt_only = 0;
     std::map<std::string,int> missing;   // syllable keys with no syllable unit
@@ -635,6 +635,7 @@ void usage() {
 } // namespace
 
 int main(int argc, char** argv) {
+    voc::set_exe_path(argv[0]);
     if (argc < 2) { usage(); return 2; }
     std::string cmd = argv[1];
     if (cmd == "--version" || cmd == "-V") { std::cout << "grunt " << kGruntVersion << "\n"; return 0; }

@@ -4,6 +4,31 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.12.0] - 2026-06-16
+
+### Added (download-and-run path toward a double-click GUI)
+- Executable-relative resource resolution (`ResourcePath`): `data/` and
+  `voices/` are now found relative to the binary (then CWD, then repo/install
+  layouts), so grunt works when launched from any working directory — the
+  prerequisite for a double-clicked app. Verified by running from a foreign CWD
+  with resources beside the exe.
+- Release CI now builds and publishes a **Windows GUI package**
+  (`grunt-vX.Y.Z-windows.zip`): `grunt_gui.exe` + CLI + runtime DLLs + bundled
+  `data/` and demo bank, plus a "READ ME FIRST" launch note. A non-builder can
+  download, unzip, and double-click `grunt_gui.exe`. (Deps vendored in CI;
+  GLFW/libvorbis via vcpkg.)
+- `SETUP.md` leads with the click-and-go Windows path, honest about the
+  one-time unsigned-app SmartScreen notice (code signing needs a paid cert).
+
+### Fixed
+- quickstart summary no longer prints a doubled `.//path`.
+
+### Note
+- The GUI itself can't be built or run in the dev sandbox (no display, deps not
+  present), so the packaging workflow and path resolution are built
+  correct-by-construction and CI-built; the "window opens and plays sound"
+  confirmation happens on a real Windows machine.
+
 ## [0.11.0] - 2026-06-16
 
 ### Added (Phase 2 — phoneme-backed syllable rendering)

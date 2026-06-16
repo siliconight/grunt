@@ -1,4 +1,5 @@
 #include "Engine.h"
+#include "ResourcePath.h"
 #include <cctype>
 
 namespace voc {
@@ -37,7 +38,7 @@ SynthResult Engine::synth(const std::string& text,
     {
         std::string derr;
         for (const char* p : {"data/cmudict.dict", "data/sample.dict"}) {
-            if (mapper.load_dictionary(p, derr)) break;
+            if (mapper.load_dictionary(resource_path(p), derr)) break;
         }
     }
 

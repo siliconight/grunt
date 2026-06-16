@@ -1,6 +1,26 @@
 # grunt — setup
 
-## Fastest path: hear it now (no setup)
+## Just want to click and go? (Windows, no building)
+
+Each tagged release has a **`grunt-vX.Y.Z-windows.zip`** attached (under
+Assets on the GitHub Releases page). It contains a ready-to-run GUI — no
+toolchain, no build.
+
+1. Download and unzip it anywhere.
+2. Double-click **`grunt_gui.exe`**.
+3. Type a line, pick a character, preview by ear, export an `.ogg`.
+
+The folder already has `data/` and the bundled demo bank beside the exe, so it
+finds everything no matter where you put it.
+
+> First launch, Windows may show a SmartScreen notice because the app isn't
+> code-signed (signing needs a paid certificate). Click **More info → Run
+> anyway**. The app is the same binary built by the project's release CI from
+> this source.
+
+Prefer the command line, or on macOS/Linux? Build from source below.
+
+## Fastest path from source: hear it now (no setup)
 
 If you've built grunt, you already have everything for a first sound:
 

@@ -15,6 +15,7 @@
 #include "Engine.h"
 #include "AudioOut.h"
 #include "Types.h"
+#include "ResourcePath.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -30,6 +31,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <cstdio>
 #include <mutex>
 #include <string>
 #include <vector>
@@ -86,7 +88,8 @@ struct Player {
     void shutdown() { ma_device_uninit(&device); }
 };
 
-int main(int, char**) {
+int main(int argc, char** argv) {
+    voc::set_exe_path(argv[0]);
     if (!glfwInit()) return 1;
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
@@ -117,7 +120,9 @@ int main(int, char**) {
     Engine engine;
     Player player;
     std::string status = "Load a voice bank to begin.";
-    char voice_dir[256] = "voices/heavy_brother";
+    char voice_dir[256];
+    std::snprintf(voice_dir, sizeof(voice_dir), "%s",
+                  voc::resource_path("voices/heavy_brother").c_str());
     char text[256] = "Open the gate!";
     int emotion_idx = 0;   // 0 neutral, 1 urgent, 2 angry
     int fx_idx = 0;
