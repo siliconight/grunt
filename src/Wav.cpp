@@ -56,14 +56,24 @@ bool read_wav(const std::string& path, AudioBuffer& out, std::string& err) {
         const unsigned char* p = b.data() + pos;
         uint32_t csz = get_u32(p + 4);
         if (std::memcmp(p, "fmt ", 4) == 0) {
-            channels = get_u16(p + 10); sr = get_u32(p + 12); bits = get_u16(p + 22);
+            if (pos + 8 + 16 <= b.size()) { // need 16 bytes of fmt body
+                channels = get_u16(p + 10); sr = get_u32(p + 12); bits = get_u16(p + 22);
+            }
         } else if (std::memcmp(p, "data", 4) == 0) {
             data = p + 8; data_len = csz; break;
         }
-        pos += 8 + csz + (csz & 1);
+        size_t advance = (size_t)8 + csz + (csz & 1);
+        if (advance == 0) break;       // malformed: avoid infinite loop
+        pos += advance;
     }
     if (!data) { err = "no data chunk: " + path; return false; }
     if (bits != 16) { err = "only 16-bit PCM supported: " + path; return false; }
+
+    // Trust nothing from the header: clamp the claimed data length to the bytes
+    // actually present after the data chunk. A truncated/garbage WAV can claim a
+    // huge data_len, which would otherwise read past the buffer and crash.
+    size_t avail = b.size() - (size_t)(data - b.data());
+    if (data_len > avail) data_len = (uint32_t)avail;
 
     out.sample_rate = (int)sr;
     size_t n = data_len / 2;

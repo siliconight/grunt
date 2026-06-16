@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.4] - 2026-06-16
+
+### Fixed
+- Windows test crash (SEGFAULT in CI): tests wrote to a hardcoded `/tmp/` path,
+  which doesn't exist on Windows. `write_wav` failed, then `read_wav` ran on a
+  nonexistent file and crashed. Tests now use `std::filesystem::temp_directory_path()`.
+- `read_wav` hardened against malformed/truncated WAVs: the claimed `data` chunk
+  length is now clamped to the bytes actually present (a too-large length would
+  read past the buffer and crash), and the chunk scanner guards against
+  zero-advance loops and short `fmt ` chunks. Protects the renderer from a bad
+  bank clip, not just the tests.
+- Added a regression test asserting `read_wav` on a missing file fails cleanly.
+
 ## [0.2.3] - 2026-06-16
 
 ### Changed

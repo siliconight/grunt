@@ -7,11 +7,18 @@
 #include <iostream>
 #include <cassert>
 #include <cmath>
+#include <filesystem>
+#include <string>
 
 using namespace voc;
 
 static int failures = 0;
 #define CHECK(cond, msg) do { if(!(cond)){ std::cerr << "FAIL: " << msg << "\n"; ++failures; } else { std::cout << "ok: " << msg << "\n"; } } while(0)
+
+// Portable temp path — /tmp doesn't exist on Windows, which segfaulted CI.
+static std::string tmp_path(const char* name) {
+    return (std::filesystem::temp_directory_path() / name).string();
+}
 
 void test_normalizer() {
     TextNormalizer n;
@@ -62,11 +69,20 @@ void test_wav_roundtrip() {
     AudioBuffer b; b.sample_rate = 22050;
     for (int i = 0; i < 1000; ++i) b.samples.push_back(0.5f * std::sin(i * 0.1f));
     std::string err;
-    CHECK(write_wav("/tmp/_grunt_test.wav", b, err), "wav: write ok");
+    std::string p = tmp_path("_grunt_test.wav");
+    CHECK(write_wav(p, b, err), "wav: write ok");
     AudioBuffer r;
-    CHECK(read_wav("/tmp/_grunt_test.wav", r, err), "wav: read ok");
+    CHECK(read_wav(p, r, err), "wav: read ok");
     CHECK(r.samples.size() == b.samples.size(), "wav: sample count preserved");
-    CHECK(std::fabs(r.samples[10] - b.samples[10]) < 0.01f, "wav: values roundtrip");
+    CHECK(!r.samples.empty() && std::fabs(r.samples[10] - b.samples[10]) < 0.01f,
+          "wav: values roundtrip");
+}
+
+void test_read_missing_file() {
+    // reading a nonexistent file must fail cleanly, never crash (the Windows CI segfault)
+    AudioBuffer r; std::string err;
+    bool ok = read_wav(tmp_path("_grunt_does_not_exist.wav"), r, err);
+    CHECK(!ok, "wav: missing file fails gracefully (no crash)");
 }
 
 void test_renderer_clipping() {
@@ -74,8 +90,9 @@ void test_renderer_clipping() {
     AudioBuffer loud; loud.sample_rate = 22050;
     for (int i = 0; i < 2000; ++i) loud.samples.push_back(0.99f * std::sin(i * 0.2f));
     std::string err;
-    write_wav("/tmp/_grunt_loud.wav", loud, err);
-    AudioBuffer rb; read_wav("/tmp/_grunt_loud.wav", rb, err);
+    std::string lp = tmp_path("_grunt_loud.wav");
+    write_wav(lp, loud, err);
+    AudioBuffer rb; read_wav(lp, rb, err);
     CHECK(rb.peak_dbfs() <= 0.0, "renderer/limiter: peak below 0 dBFS sanity");
 }
 
@@ -106,7 +123,7 @@ void test_format_dispatch() {
     AudioBuffer b; b.sample_rate = 22050;
     for (int i = 0; i < 500; ++i) b.samples.push_back(0.3f * std::sin(i * 0.1f));
     std::string err;
-    CHECK(write_audio("/tmp/_grunt_fmt.wav", b, AudioFormat::Wav, 0.4f, err),
+    CHECK(write_audio(tmp_path("_grunt_fmt.wav"), b, AudioFormat::Wav, 0.4f, err),
           "format: write_audio wav ok");
 }
 
@@ -116,6 +133,7 @@ int main() {
     test_prosody();
     test_json();
     test_wav_roundtrip();
+    test_read_missing_file();
     test_format_dispatch();
     test_renderer_clipping();
     test_ship_gate_logic();
