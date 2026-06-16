@@ -1,0 +1,17 @@
+{
+  "voice_id": "heavy_brother",
+  "display_name": "Heavy Brother",
+  "schema_version": 1,
+  "base_pitch": -4,
+  "default_speed": 0.9,
+  "sample_rate": 22050,
+  "style": "ps1_gritty",
+  "default_fx_preset": "clean_ps1",
+  "unit_inventory": {
+    "phonemes": false,
+    "diphones": false,
+    "syllables": true,
+    "grunts": true,
+    "efforts": false
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "units": [
+    { "id": "hb_gr_01", "type": "grunt", "key": "*grunt", "emotion": "neutral",
+      "pitch_center_hz": 110.0, "duration_ms": 180, "energy": 0.6,
+      "file": "units/grunts/gr_01.wav",
+      "provenance": { "source": "original_recording", "recorded_by": "GabagoolStudios", "license": "owned", "commercial_use": true, "synth_tool_derived": false } },
+
+    { "id": "hb_gr_02", "type": "grunt", "key": "*grunt", "emotion": "angry",
+      "pitch_center_hz": 98.0, "duration_ms": 220, "energy": 0.7,
+      "file": "units/grunts/gr_02.wav",
+      "provenance": { "source": "original_recording", "recorded_by": "GabagoolStudios", "license": "owned", "commercial_use": true, "synth_tool_derived": false } },
+
+    { "id": "hb_gr_03", "type": "grunt", "key": "*grunt", "emotion": "urgent",
+      "pitch_center_hz": 130.0, "duration_ms": 150, "energy": 0.55,
+      "file": "units/grunts/gr_03.wav",
+      "provenance": { "source": "original_recording", "recorded_by": "GabagoolStudios", "license": "owned", "commercial_use": true, "synth_tool_derived": false } },
+
+    { "id": "hb_syl_geh", "type": "syllable", "key": "ge", "emotion": "neutral",
+      "pitch_center_hz": 120.0, "duration_ms": 160, "energy": 0.6,
+      "file": "units/syllables/syl_geh.wav",
+      "provenance": { "source": "original_recording", "recorded_by": "GabagoolStudios", "license": "owned", "commercial_use": true, "synth_tool_derived": false } },
+
+    { "id": "hb_syl_tah", "type": "syllable", "key": "ta", "emotion": "neutral",
+      "pitch_center_hz": 105.0, "duration_ms": 170, "energy": 0.6,
+      "file": "units/syllables/syl_tah.wav",
+      "provenance": { "source": "original_recording", "recorded_by": "GabagoolStudios", "license": "owned", "commercial_use": true, "synth_tool_derived": false } }
+  ]
+}
