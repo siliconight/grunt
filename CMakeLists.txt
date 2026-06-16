@@ -11,6 +11,7 @@ endif()
 
 if(MSVC)
     add_compile_options(/W4 /permissive-)
+    add_compile_definitions(_CRT_SECURE_NO_WARNINGS)
 else()
     add_compile_options(-Wall -Wextra)
 endif()
@@ -95,6 +96,7 @@ option(GRUNT_BUILD_GUI "Build the grunt GUI (needs Dear ImGui + GLFW + miniaudio
 if(GRUNT_BUILD_GUI)
     set(IMGUI_DIR    ${CMAKE_SOURCE_DIR}/third_party/imgui)
     set(MINIAUDIO_DIR ${CMAKE_SOURCE_DIR}/third_party/miniaudio)
+    set(STB_DIR       ${CMAKE_SOURCE_DIR}/third_party/stb)
 
     find_package(glfw3 QUIET)
     find_package(OpenGL REQUIRED)
@@ -129,7 +131,7 @@ if(GRUNT_BUILD_GUI)
         ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
     )
     target_include_directories(grunt_gui PRIVATE
-        include ${IMGUI_DIR} ${IMGUI_DIR}/backends ${MINIAUDIO_DIR})
+        include ${IMGUI_DIR} ${IMGUI_DIR}/backends ${MINIAUDIO_DIR} ${STB_DIR})
     target_link_libraries(grunt_gui PRIVATE glfw OpenGL::GL)
 
     if(OGG_LIB AND VORBIS_LIB AND VORBISENC_LIB AND VORBIS_INCLUDE)

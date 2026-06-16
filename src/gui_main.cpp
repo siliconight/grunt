@@ -24,6 +24,9 @@
 #define MINIAUDIO_IMPLEMENTATION
 #include "miniaudio.h"
 
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
 #include <atomic>
 #include <cstdint>
 #include <cstring>
@@ -93,6 +96,17 @@ int main(int, char**) {
     if (!win) { glfwTerminate(); return 1; }
     glfwMakeContextCurrent(win);
     glfwSwapInterval(1);
+
+    // window/taskbar icon (optional — silently skipped if the file isn't found)
+    {
+        int iw, ih, ic;
+        unsigned char* px = stbi_load("assets/grunt_icon64.png", &iw, &ih, &ic, 4);
+        if (px) {
+            GLFWimage icon{ iw, ih, px };
+            glfwSetWindowIcon(win, 1, &icon);
+            stbi_image_free(px);
+        }
+    }
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();

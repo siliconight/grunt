@@ -8,25 +8,55 @@ on:
     branches: [main]
 
 jobs:
-  # Lesson from gool: static reading is not verification. CI builds with the
-  # real toolchain + the real libvorbis, then runs the tests and a smoke bake.
-  linux:
+  # Resolve the version being built once, share it with every downstream job.
+  # On a tag push -> the tag (v0.2.2). On a branch/PR -> describe/short-sha.
+  version:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.v.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - id: v
+        shell: bash
+        run: |
+          if [[ "${GITHUB_REF}" == refs/tags/* ]]; then
+            VER="${GITHUB_REF#refs/tags/}"
+          else
+            VER="$(git describe --tags --always 2>/dev/null || echo dev)"
+          fi
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          echo "Building grunt $VER"
+
+  # Lesson from gool: static reading is not verification. CI builds with the
+  # real toolchain + real libvorbis, runs tests, and a smoke bake.
+  linux:
+    needs: version
+    name: "linux (${{ needs.version.outputs.version }})"
+    runs-on: ubuntu-latest
+    env:
+      GRUNT_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install libvorbis + libogg dev
-        run: sudo apt-get update && sudo apt-get install -y libvorbis-dev libogg-dev cmake
+      - name: Report version under test
+        run: echo "Building and testing grunt $GRUNT_VERSION"
 
-      - name: Configure (Release, with libvorbis)
+      - name: Install libvorbis + libogg dev
+        run: sudo apt-get update && sudo apt-get install -y libvorbis-dev libogg-dev cmake ffmpeg
+
+      - name: Configure (Release, with libvorbis, warnings as errors)
         run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGRUNT_WERROR=ON
 
       - name: Verify OGG support was detected
         run: |
-          grep -q "OGG/Vorbis output enabled" <(cmake -S . -B build_check 2>&1) \
+          cmake -S . -B build_check 2>&1 | tee cfg.txt
+          grep -q "OGG/Vorbis output enabled" cfg.txt \
             || (echo "libvorbis NOT detected by CMake — OGG path would be untested" && exit 1)
 
-      - name: Build (warnings as errors)
+      - name: Build
         run: cmake --build build --config Release -- -j2
 
       - name: Run unit tests
@@ -42,7 +72,6 @@ jobs:
 
       - name: Confirm codec is Vorbis (not Opus)
         run: |
-          sudo apt-get install -y ffmpeg
           codec=$(ffprobe -loglevel error -show_entries stream=codec_name \
             -of default=nw=1:nk=1 build/vo/mission01_open_gate.ogg)
           echo "codec=$codec"
@@ -57,9 +86,16 @@ jobs:
           cmp a.ogg b.ogg || (echo "determinism broken" && exit 1)
 
   windows:
+    needs: version
+    name: "windows (${{ needs.version.outputs.version }})"
     runs-on: windows-latest
+    env:
+      GRUNT_VERSION: ${{ needs.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Report version under test
+        run: echo "Building and testing grunt $env:GRUNT_VERSION"
 
       - name: Install libvorbis via vcpkg
         run: vcpkg install libvorbis libogg

@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.2] - 2026-06-16
+
+### Added
+- Logo (`assets/grunt.png`) — README banner and GUI window icon.
+- CI jobs are labeled with the version being built (a `version` job resolves the
+  tag or describe-sha and feeds it to the build jobs' names + env).
+
+### Fixed
+- MSVC build: replaced `M_PI` (undefined on MSVC without `_USE_MATH_DEFINES`)
+  with a portable `voc::kPi` constant. Caught by the Windows CI job.
+- MSVC `std::fopen` C4996 deprecation warning silenced via
+  `_CRT_SECURE_NO_WARNINGS` (set in CMake for MSVC builds).
+
 ## [0.2.1] - 2026-06-16
 
 ### Added

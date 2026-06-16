@@ -25,7 +25,7 @@ FxParams params_for(const std::string& preset) {
 
 // one-pole filters
 void high_pass(std::vector<float>& s, double cutoff, int sr) {
-    double rc = 1.0 / (2.0 * M_PI * cutoff);
+    double rc = 1.0 / (2.0 * kPi * cutoff);
     double dt = 1.0 / sr;
     double a = rc / (rc + dt);
     float prev_in = 0.f, prev_out = 0.f;
@@ -35,7 +35,7 @@ void high_pass(std::vector<float>& s, double cutoff, int sr) {
     }
 }
 void low_pass(std::vector<float>& s, double cutoff, int sr) {
-    double rc = 1.0 / (2.0 * M_PI * cutoff);
+    double rc = 1.0 / (2.0 * kPi * cutoff);
     double dt = 1.0 / sr;
     double a = dt / (rc + dt);
     float prev = 0.f;

@@ -22,6 +22,12 @@ Public domain (or MIT-0). Single header:
     curl -L https://raw.githubusercontent.com/mackron/miniaudio/master/miniaudio.h \
         -o third_party/miniaudio/miniaudio.h
 
+## 2b. stb_image  ->  third_party/stb/stb_image.h
+Public domain (or MIT). Single header, used to load the window icon:
+
+    curl -L https://raw.githubusercontent.com/nothings/stb/master/stb_image.h \
+        -o third_party/stb/stb_image.h
+
 ## 3. GLFW  (system package or vcpkg)
 - Windows: `vcpkg install glfw3` (configure with the vcpkg toolchain)
 - Debian/Ubuntu: `sudo apt install libglfw3-dev`

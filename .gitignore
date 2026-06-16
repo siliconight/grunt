@@ -29,3 +29,4 @@ Testing/
 # vendored GUI deps (see third_party/README.md) — not committed
 /third_party/imgui/
 /third_party/miniaudio/
+/third_party/stb/

@@ -9,6 +9,10 @@
 
 namespace voc {
 
+// Portable pi — MSVC doesn't define M_PI without _USE_MATH_DEFINES, so we
+// avoid the platform dependency entirely.
+inline constexpr double kPi = 3.14159265358979323846;
+
 // ---- Emotion ---------------------------------------------------------------
 enum class Emotion { Neutral, Urgent, Angry };
 

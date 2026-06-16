@@ -1,14 +1,21 @@
-# grunt
+<p align="center">
+  <img src="assets/grunt.png" alt="grunt" width="220">
+</p>
 
-A build-time CLI that turns short game text into named PS1-style vocal clips
-from **owned** voice banks, and bakes a reproducible sound bank that
-Godot/gool imports and plays at runtime by name.
+<h1 align="center">grunt</h1>
+
+<p align="center">
+  A standalone CLI that turns short game text into named PS1-style vocal clips
+  from <strong>owned</strong> voice banks, and bakes a reproducible sound bank
+  that Godot/gool imports and plays at runtime by name.
+</p>
 
 This is **Phase 0** (grunt-vocalizer mode): text drives timing and emotion;
 output is stylized syllables and grunts stitched from recorded units, run
 through a PS1-style FX chain. No neural TTS, no cloud, no runtime synthesis.
 
-See `vocalizer_tdd.md` (the design doc) for the full architecture and roadmap.
+See `vocalizer_tdd.md` (the design doc) for the full architecture, and
+`ROADMAP.md` for progress against it.
 
 ## Build
 
