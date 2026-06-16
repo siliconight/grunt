@@ -88,6 +88,13 @@ public:
                        const UnitDatabase& db) const;
 };
 
+// Phase 3 character DSP — exposed for testing. (Defined in AudioRenderer.cpp.)
+namespace dsp {
+std::vector<float> formant_shift(const std::vector<float>& in, double shift);
+std::vector<float> add_sub_octave(const std::vector<float>& in, double mix);
+void apply_rasp(std::vector<float>& s, double amt);
+}
+
 // §6.7 — PS1 FX presets
 class RetroFxChain {
 public:

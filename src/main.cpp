@@ -121,6 +121,9 @@ int cmd_synth(int argc, char** argv) {
         if (!a.has("emotion")) emo = emotion_from_string(cp->emotion_bias);
         opts.extra_pitch_st = cp->pitch_offset_st;
         opts.extra_gain_db  = cp->gain_db;
+        opts.formant_shift  = cp->formant_shift;
+        opts.sub_layer      = cp->sub_layer;
+        opts.rasp           = cp->rasp ? 0.6 : 0.0;
     }
 
     bool fb = false;

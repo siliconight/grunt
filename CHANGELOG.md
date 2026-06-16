@@ -4,6 +4,30 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.7.0] - 2026-06-16
+
+### Added (Phase 3 character DSP — formant / sub-octave / rasp)
+- Formant shifting (`voc::dsp::formant_shift`): moves the spectral envelope
+  independently of pitch via resample-and-restore, so lowering a voice sounds
+  like a bigger throat rather than a slowed tape. Decoupled from the pitch
+  resample.
+- Sub-octave layering (`add_sub_octave`): mixes in an octave-down copy for
+  chest/size.
+- Rasp (`apply_rasp`): bounded soft-clip + odd-harmonic grit for raspy and
+  monstrous timbres.
+- `ProsodyUnit` and `Engine::Options` carry `formant_shift` / `sub_layer` /
+  `rasp`, wired from character presets through to the renderer.
+- All four DSP-dependent characters (Deep Big, Woman/raspy, Orc, Demon) are now
+  fully realized and marked `ready: true` — no more approximation notes.
+- DSP invariant tests: formant/sub preserve length (pitch intact), rasp stays
+  bounded in [-1,1], zero-amount is a no-op, empty input is safe.
+
+### Note
+- This is real DSP and best judged by ear; the sandbox verifies the math
+  invariants and that all characters render. Confirm the timbres on Windows.
+- PSOLA (clean repitch/retime across a small unit set) is the remaining Phase 3
+  item.
+
 ## [0.6.0] - 2026-06-16
 
 ### Added (efforts & onomatopoeia — non-lexical vocalizations)

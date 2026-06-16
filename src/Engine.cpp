@@ -36,11 +36,15 @@ SynthResult Engine::synth(const std::string& text,
     if (emotion != Emotion::Neutral) up.emotion = emotion; // explicit override
     ProsodyPlan pp = pros.plan(up);
 
-    // layer character pitch/gain over every unit
-    if (opts.extra_pitch_st != 0.0 || opts.extra_gain_db != 0.0) {
+    // layer character pitch/gain/DSP over every unit
+    if (opts.extra_pitch_st != 0.0 || opts.extra_gain_db != 0.0 ||
+        opts.formant_shift != 0.0 || opts.sub_layer || opts.rasp != 0.0) {
         for (auto& u : pp.units) {
             u.pitch_offset_st += opts.extra_pitch_st;
             u.gain_db += opts.extra_gain_db;
+            u.formant_shift = opts.formant_shift;
+            u.sub_layer = opts.sub_layer;
+            u.rasp = opts.rasp;
         }
     }
 
@@ -94,6 +98,9 @@ SynthResult Engine::synth_vocalization(const PhonemeSeq& seq,
         u.gain_db += gain_boost + opts.extra_gain_db;
         u.pitch_offset_st += opts.extra_pitch_st;
         u.duration_ms = (int)(u.duration_ms * dur_scale);
+        u.formant_shift = opts.formant_shift;
+        u.sub_layer = opts.sub_layer;
+        u.rasp = opts.rasp;
     }
 
     auto selected = sel.select(pp, db_);

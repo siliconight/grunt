@@ -140,16 +140,16 @@ Honest dependency split:
 
 Tasks:
 - [x] `CharacterPreset` type + `data/characters.json` loader (user-editable)
-- [x] `--character <name>` flag on `synth`; applies the recipe (pitch/FX/prosody/gain)
+- [x] `--character` on `synth`; applies the recipe (pitch/FX/prosody/gain)
 - [x] Real license-cleared base voice in the registry (LJ Speech, public-domain
       dataset, MIT model repo — `piper-en_US-ljspeech`)
-- [x] The four "achievable now" presets render (Grunt, Robot, Yelling Woman,
-      Yelling Man); not-ready ones render an approximation with a note
+- [x] All eight presets render. Formant shift / sub-octave / rasp DSP landed in
+      v0.7.0, so Deep Big, Woman (raspy), Orc, and Demon are now fully realized
+      rather than approximations.
 - [ ] `--character` on `generate` too (generate base voice per character)
 - [ ] A second base voice (male) so presets aren't all one timbre
 - [ ] GUI character dropdown (preview by ear per character)
-- [ ] Renderer DSP for the rest: formant shift, sub-octave layer, rasp (ties
-      to Phase 3) — then the remaining four become fully realized
+- [ ] PSOLA for clean repitch/retime across a small unit set (remaining Phase 3)
 - [ ] Each preset checked against the north star (lowers barrier, stays airtight)
 
 ---

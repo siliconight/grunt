@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_comment": "Character presets for grunt TTS mode. A preset is a recipe over the pipeline: pick a character by name and grunt applies base_voice + pitch + fx_preset + emotion_bias (+ formant/sub when the renderer supports them). base_voice is a model id from voice_models.json. Presets sharing a base_voice differ only in pitch/FX/prosody. Fields marked 'planned' (formant_shift, sub_layer, rasp) await renderer DSP — see ROADMAP Phase 3; until then they're ignored, so those characters render as a reasonable approximation rather than failing.",
+  "_comment": "Character presets for grunt TTS mode. A preset is a recipe over the pipeline: pick a character by name and grunt applies base_voice + pitch + fx_preset + emotion_bias (+ formant/sub when the renderer supports them). base_voice is a model id from voice_models.json. Presets sharing a base_voice differ only in pitch/FX/prosody. Fields marked 'planned' (formant_shift, sub_layer, rasp) await renderer DSP \u2014 see ROADMAP Phase 3; until then they're ignored, so those characters render as a reasonable approximation rather than failing.",
   "characters": [
     {
       "id": "grunt",
@@ -48,8 +48,7 @@
       "fx_preset": "clean_ps1",
       "emotion_bias": "neutral",
       "sub_layer": true,
-      "ready": false,
-      "_blocked_on": "sub-octave layering DSP (Phase 3)"
+      "ready": true
     },
     {
       "id": "woman_raspy",
@@ -59,8 +58,7 @@
       "fx_preset": "clean_ps1",
       "emotion_bias": "neutral",
       "rasp": true,
-      "ready": false,
-      "_blocked_on": "rasp DSP (saturation + bandpass shaping, Phase 3)"
+      "ready": true
     },
     {
       "id": "orc",
@@ -70,8 +68,7 @@
       "fx_preset": "monster_ps1",
       "emotion_bias": "angry",
       "formant_shift": -0.2,
-      "ready": false,
-      "_blocked_on": "formant shifting DSP (Phase 3)"
+      "ready": true
     },
     {
       "id": "demon",
@@ -82,8 +79,7 @@
       "emotion_bias": "angry",
       "formant_shift": -0.3,
       "sub_layer": true,
-      "ready": false,
-      "_blocked_on": "formant shifting + sub-octave layering (Phase 3)"
+      "ready": true
     }
   ]
 }

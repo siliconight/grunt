@@ -66,6 +66,10 @@ struct ProsodyUnit {
     double pitch_offset_st  = 0.0;     // semitones
     double gain_db          = 0.0;
     bool   stress           = false;
+    // Phase 3 character DSP (0/false = no effect)
+    double formant_shift    = 0.0;     // -1..+1; <0 = bigger/darker, >0 = smaller/brighter
+    bool   sub_layer        = false;   // add a sub-octave layer for chest/size
+    double rasp             = 0.0;     // 0..1; adds gritty saturation
 };
 
 struct ProsodyPlan {

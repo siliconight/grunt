@@ -59,6 +59,50 @@ void apply_gain_db(std::vector<float>& s, double db) {
 
 } // namespace
 
+namespace dsp {
+
+// Formant shift via resample-and-restore: resampling by `fr` moves the spectral
+// envelope (formants), then we restore the original length so PITCH is
+// unchanged but the formants have moved. fr<1 lowers formants (bigger/darker
+// throat — orc/demon); fr>1 raises them (smaller/brighter). This is the
+// classic dependency-free formant trick; the later pitch resample is applied
+// separately, so pitch and formants are decoupled.
+std::vector<float> formant_shift(const std::vector<float>& in, double shift) {
+    if (in.empty() || std::fabs(shift) < 1e-3) return in;
+    // shift in [-1,1] -> ratio roughly [0.7, 1.43]
+    double fr = std::pow(2.0, shift * 0.5);          // semitone-ish mapping
+    size_t n = in.size();
+    // resample to n/fr samples (moves formants), then stretch back to n
+    std::vector<float> moved = resample(in, fr);     // length ~ n/fr
+    return fit_to_length(moved, n);                   // restore length -> pitch intact
+}
+
+// Sub-octave layer: add a copy pitched down one octave (stretch x2 then refit)
+// for chest/size. Mixed under the dry signal.
+std::vector<float> add_sub_octave(const std::vector<float>& in, double mix) {
+    if (in.empty()) return in;
+    std::vector<float> sub = resample(in, 0.5);      // down an octave (longer)
+    sub = fit_to_length(sub, in.size());
+    std::vector<float> out(in.size());
+    for (size_t i = 0; i < in.size(); ++i)
+        out[i] = (float)(in[i] + mix * sub[i]);
+    return out;
+}
+
+// Rasp: gritty waveshaping (soft-clip + a touch of odd harmonics) for raspy /
+// monstrous timbres. amt in 0..1.
+void apply_rasp(std::vector<float>& s, double amt) {
+    if (amt < 1e-3) return;
+    double drive = 1.0 + 6.0 * amt;
+    for (float& x : s) {
+        double v = std::tanh(x * drive);             // soft clip
+        v += amt * 0.15 * std::sin(3.0 * x * kPi);   // odd-harmonic grit
+        x = (float)std::max(-1.0, std::min(1.0, v));
+    }
+}
+
+} // namespace dsp
+
 AudioBuffer AudioRenderer::render(const std::vector<SelectedUnit>& sel,
                                   const UnitDatabase& db) const {
     AudioBuffer out;
@@ -76,6 +120,12 @@ AudioBuffer AudioRenderer::render(const std::vector<SelectedUnit>& sel,
 
         std::vector<float> s = clip.samples;
 
+        // formant shift FIRST (decoupled from pitch): moves the spectral
+        // envelope while leaving length/pitch intact, so the following pitch
+        // resample changes pitch without undoing the formant move.
+        if (std::fabs(su.prosody.formant_shift) > 1e-3)
+            s = dsp::formant_shift(s, su.prosody.formant_shift);
+
         // pitch shift via resample ratio (positive semitones -> higher pitch)
         double ratio = std::pow(2.0, su.prosody.pitch_offset_st / 12.0);
         if (std::fabs(su.prosody.pitch_offset_st) > 1e-3) s = resample(s, ratio);
@@ -83,6 +133,10 @@ AudioBuffer AudioRenderer::render(const std::vector<SelectedUnit>& sel,
         // fit to target duration
         size_t target_n = (size_t)((double)su.prosody.duration_ms * sr / 1000.0);
         if (target_n > 0) s = fit_to_length(s, target_n);
+
+        // sub-octave layer (chest/size) and rasp (grit) — character DSP
+        if (su.prosody.sub_layer) s = dsp::add_sub_octave(s, 0.7);
+        if (su.prosody.rasp > 1e-3) dsp::apply_rasp(s, su.prosody.rasp);
 
         // per-unit gain
         apply_gain_db(s, su.prosody.gain_db);

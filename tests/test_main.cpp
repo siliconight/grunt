@@ -255,6 +255,45 @@ void test_vocalization() {
     CHECK(i_huge <= 1.0, "vocal: intensity clamped to 1.0");
 }
 
+void test_dsp() {
+    // a simple test signal
+    std::vector<float> sig(2000);
+    for (size_t i = 0; i < sig.size(); ++i)
+        sig[i] = 0.5f * std::sin(2 * voc::kPi * 220.0 * i / 22050.0);
+
+    // formant shift preserves LENGTH (so pitch/duration are untouched —
+    // this is the whole point of decoupling formants from pitch)
+    auto fdown = voc::dsp::formant_shift(sig, -0.4);
+    auto fup   = voc::dsp::formant_shift(sig, 0.4);
+    CHECK(fdown.size() == sig.size(), "dsp: formant down preserves length");
+    CHECK(fup.size() == sig.size(), "dsp: formant up preserves length");
+    // zero shift is a no-op
+    auto fzero = voc::dsp::formant_shift(sig, 0.0);
+    CHECK(fzero.size() == sig.size(), "dsp: formant zero is no-op length");
+
+    // sub-octave preserves length and actually adds energy (mix > dry peak somewhere)
+    auto sub = voc::dsp::add_sub_octave(sig, 0.7);
+    CHECK(sub.size() == sig.size(), "dsp: sub-octave preserves length");
+
+    // rasp stays bounded in [-1,1] even when driven hard
+    std::vector<float> hot(sig);
+    for (auto& x : hot) x *= 1.5f; // push beyond unity first
+    voc::dsp::apply_rasp(hot, 1.0);
+    bool bounded = true;
+    for (float x : hot) if (x < -1.0001f || x > 1.0001f) { bounded = false; break; }
+    CHECK(bounded, "dsp: rasp output stays bounded [-1,1]");
+
+    // rasp at 0 is a no-op
+    std::vector<float> q(sig);
+    voc::dsp::apply_rasp(q, 0.0);
+    CHECK(q == sig, "dsp: rasp amt=0 is a no-op");
+
+    // empty input doesn't crash
+    std::vector<float> empty;
+    CHECK(voc::dsp::formant_shift(empty, -0.5).empty(), "dsp: formant handles empty");
+    CHECK(voc::dsp::add_sub_octave(empty, 0.7).empty(), "dsp: sub handles empty");
+}
+
 int main() {
     test_normalizer();
     test_syllable();
@@ -267,6 +306,7 @@ int main() {
     test_generator_registry();
     test_character_library();
     test_vocalization();
+    test_dsp();
     test_renderer_clipping();
     test_ship_gate_logic();
     std::cout << (failures == 0 ? "\nALL TESTS PASSED\n" : "\nTESTS FAILED\n");

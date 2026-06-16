@@ -31,6 +31,9 @@ public:
     struct Options {
         double extra_pitch_st = 0.0;  // added to every unit's pitch offset
         double extra_gain_db  = 0.0;  // added to every unit's gain
+        double formant_shift  = 0.0;  // character formant shift (-1..+1)
+        bool   sub_layer      = false;// add sub-octave layer
+        double rasp           = 0.0;  // 0..1 grit
     };
 
     // Render one line. Deterministic for a fixed seed.
