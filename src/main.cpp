@@ -649,18 +649,39 @@ int cmd_doctor(int argc, char** argv) {
     else bad("voice model registry not found/parseable: " + err,
              "run grunt from the repo/package root, or pass --registry <path>");
 
-    // 2) piper on PATH
-    std::cout << "checking for the piper binary...\n";
+    // 2) piper available — either a `piper` command (exe/console script) or the
+    //    modern Python package (`python -m piper` / `py -m piper`).
+    std::cout << "checking for piper (speech engine)...\n";
+    struct Probe { const char* cmd; const char* test; };
 #if defined(_WIN32)
-    const char* piper_probe = "piper --help >NUL 2>&1";
+    const Probe probes[] = {
+        {"piper",          "piper --help >NUL 2>&1"},
+        {"python -m piper","python -m piper --help >NUL 2>&1"},
+        {"py -m piper",    "py -m piper --help >NUL 2>&1"},
+    };
 #else
-    const char* piper_probe = "piper --help >/dev/null 2>&1";
+    const Probe probes[] = {
+        {"piper",            "piper --help >/dev/null 2>&1"},
+        {"python3 -m piper", "python3 -m piper --help >/dev/null 2>&1"},
+        {"python -m piper",  "python -m piper --help >/dev/null 2>&1"},
+    };
 #endif
-    bool have_piper = (std::system(piper_probe) == 0);
-    if (have_piper) ok("piper is installed and runnable (on PATH)");
-    else bad("piper binary not found on PATH",
-             "install Piper (offline MIT TTS) and put it on PATH; see SETUP.md step 1. "
-             "You can still use --generator stub for pipeline testing.");
+    std::string piper_cmd;
+    for (const auto& p : probes)
+        if (std::system(p.test) == 0) { piper_cmd = p.cmd; break; }
+    bool have_piper = !piper_cmd.empty();
+    if (have_piper) {
+        ok(std::string("piper available via: ") + piper_cmd);
+#if defined(_WIN32)
+        _putenv_s("GRUNT_PIPER_CMD", piper_cmd.c_str());
+#else
+        setenv("GRUNT_PIPER_CMD", piper_cmd.c_str(), 1);
+#endif
+    } else {
+        bad("piper not found",
+            "install the modern engine: pip install piper-tts  (needs Python). "
+            "See SETUP.md. You can still use --generator stub for pipeline testing.");
+    }
 
     // 3) at least one registered model's file is present
     if (have_reg) {

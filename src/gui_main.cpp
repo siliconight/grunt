@@ -40,6 +40,7 @@
 #include <filesystem>
 #include <algorithm>
 #include <fstream>
+#include <cstdlib>
 
 using namespace voc;
 
@@ -122,19 +123,28 @@ static bool bank_has_words(const std::string& bank_name) {
         || s.find("\"type\":\"word\"") != std::string::npos;
 }
 
-// Find the piper binary: PATH first, then a bundled .\piper\ next to the exe.
-// Returns the command to invoke (just "piper" if on PATH), or "" if not found.
+// Find a usable piper: a `piper` command, the modern Python package
+// (`python -m piper`), or a bundled binary next to the exe. Returns the command
+// string to invoke (sets nothing; caller exports GRUNT_PIPER_CMD), or "".
 static std::string find_piper() {
-    // on PATH?
-    const char* probe =
+    struct P { const char* cmd; const char* test; };
 #if defined(_WIN32)
-        "piper --help >NUL 2>&1";
+    const P cands[] = {
+        {"piper",           "piper --help >NUL 2>&1"},
+        {"python -m piper", "python -m piper --help >NUL 2>&1"},
+        {"py -m piper",     "py -m piper --help >NUL 2>&1"},
+    };
 #else
-        "piper --help >/dev/null 2>&1";
+    const P cands[] = {
+        {"piper",            "piper --help >/dev/null 2>&1"},
+        {"python3 -m piper", "python3 -m piper --help >/dev/null 2>&1"},
+        {"python -m piper",  "python -m piper --help >/dev/null 2>&1"},
+    };
 #endif
-    if (std::system(probe) == 0) return "piper";
+    for (const auto& c : cands)
+        if (std::system(c.test) == 0) return c.cmd;
 
-    // bundled next to the exe?
+    // bundled binary next to the exe (legacy standalone piper)?
     std::error_code ec;
     std::string base = voc::resource_path("piper");
     const char* names[] = {
@@ -336,6 +346,12 @@ int main(int argc, char** argv) {
                 ImGui::InputText("##genbank", gen_bank_name, sizeof(gen_bank_name));
                 ImGui::Combo("voice model", &gen_model_idx, gen_models, IM_ARRAYSIZE(gen_models));
                 if (ImGui::Button("Generate from examples/barks.csv")) {
+                    // tell the generator which piper to use (modern python or exe)
+#if defined(_WIN32)
+                    _putenv_s("GRUNT_PIPER_CMD", piper_cmd.c_str());
+#else
+                    setenv("GRUNT_PIPER_CMD", piper_cmd.c_str(), 1);
+#endif
                     GenerateOptions opt;
                     opt.units_csv     = voc::resource_path("examples/barks.csv");
                     opt.voice_dir     = voc::resource_path(std::string("voices/") + gen_bank_name);

@@ -89,11 +89,17 @@ license-cleared open TTS voice, with no recording. It has a one-time setup.
 
 ### 1. Install Piper (a build-time tool — grunt shells out to it, never links it)
 
-Piper is a small, offline, MIT-licensed TTS engine. Get a release binary from
-its project page and put `piper` on your PATH. Verify:
+Piper is a small, offline neural TTS engine (now GPLv3, used only as a
+build-time tool grunt shells out to — never linked). Install it with pip:
 
 ```
-piper --help
+pip install piper-tts
+```
+
+Verify:
+
+```
+python -m piper --help
 ```
 
 ### 2. Download a license-cleared voice model

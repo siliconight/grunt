@@ -91,22 +91,19 @@ jobs:
             -DCMAKE_TOOLCHAIN_FILE="$VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
           cmake --build build --config Release
 
-      - name: Pre-bake starter word bank (real Piper, so first launch speaks)
+      - name: Pre-bake starter word bank (modern Piper, so first launch speaks)
         shell: bash
         continue-on-error: true
         run: |
-          # Best-effort: download Piper + the public-domain LJ voice and bake the
-          # curated starter vocabulary into a real, gate-clean word bank that ships
-          # in the package — so a user hears English words with ZERO setup. If any
-          # step fails the release still proceeds (package ships the demo bank).
+          # Best-effort: install modern Piper (pip), download the public-domain LJ
+          # voice, and bake the curated starter vocabulary into a real, gate-clean
+          # word bank that ships in the package — so a user hears English words
+          # with ZERO setup. If anything fails the release still proceeds.
           set +e
           GRUNT=$(find build -name 'grunt.exe' | head -1)
-          curl -L -o piper.zip https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip || { echo "piper download failed"; exit 0; }
-          7z x -y piper.zip -opiper_dl >/dev/null || { echo "piper extract failed"; exit 0; }
-          PIPER=$(find piper_dl -name 'piper.exe' | head -1)
-          [ -n "$PIPER" ] || { echo "piper.exe not found"; exit 0; }
-          export PATH="$(dirname "$PIPER"):$PATH"
-          # the binary resolves data/ and models relative to itself
+          python -m pip install --quiet --upgrade piper-tts || { echo "pip install piper-tts failed"; exit 0; }
+          python -m piper --help >/dev/null 2>&1 || { echo "piper not runnable"; exit 0; }
+          export GRUNT_PIPER_CMD="python -m piper"
           mkdir -p "$(dirname "$GRUNT")/data"
           cp data/*.json "$(dirname "$GRUNT")/data/" 2>/dev/null
           "$GRUNT" fetch-voice --model piper-en_US-ljspeech

@@ -70,16 +70,20 @@ public:
         c.provenance = stamp(model, name());
 
         // piper reads text on stdin, writes a WAV to --output_file.
-        // We pass the model file from the registry. This runs at build time on
-        // the user's machine where piper + the model are installed.
+        // The piper command is configurable via GRUNT_PIPER_CMD so the same
+        // code works with: the modern Python CLI ("python -m piper"), a
+        // standalone piper.exe, or a bundled binary path. Defaults to "piper".
+        const char* env = std::getenv("GRUNT_PIPER_CMD");
+        std::string piper_cmd = (env && *env) ? env : "piper";
+
         std::ostringstream cmd;
         cmd << "echo " << shell_quote(text)
-            << " | piper --model " << shell_quote(model.model_file)
+            << " | " << piper_cmd << " --model " << shell_quote(model.model_file)
             << " --output_file " << shell_quote(c.wav_path);
         int rc = std::system(cmd.str().c_str());
         if (rc != 0) {
             c.error = "piper invocation failed (rc=" + std::to_string(rc) +
-                      "); ensure piper is installed and the model exists";
+                      "); ensure piper is installed (pip install piper-tts) and the model exists";
             return c;
         }
         // sanity: confirm the file is a readable WAV

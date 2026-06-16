@@ -4,6 +4,32 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.0] - 2026-06-16
+
+### Changed (migrate to modern Python Piper — the old exe crashes)
+- ROOT CAUSE of both the local "piper.exe has stopped working" crash AND the
+  empty starter bank: the pinned Piper `2023.11.14-2` is a known-crashy build
+  that dies on launch with a ucrtbase.dll error on current Windows (rhasspy/piper
+  issues #274, #681). It crashed on the user's machine and silently failed the
+  CI bake — so the shipped zip had no starter bank. The old rhasspy/piper repo
+  is abandoned (latest tag is still that broken build); development moved to
+  OHF-Voice/piper1-gpl, distributed as a Python package.
+- grunt now uses **modern Piper via `pip install piper-tts`**, invoked as
+  `python -m piper`. The Piper command is configurable through a new
+  `GRUNT_PIPER_CMD` env var, so the same generator works with the modern Python
+  CLI, a standalone `piper.exe`, or a bundled binary — grunt shells out, never
+  links (engine is GPLv3; fine as a build-time tool).
+- `grunt doctor`, the GUI's Piper detection, `setup.bat`, and the release CI now
+  all probe for `piper` / `python -m piper` / `py -m piper` and set
+  `GRUNT_PIPER_CMD` to whatever they find. `setup.bat` installs piper via pip
+  (errors clearly if Python 3.9+ is missing) instead of downloading the crashy
+  exe. SETUP.md updated.
+
+### Note
+- The AVG "suspicious file" popup the user saw is a separate, harmless
+  unsigned-binary reputation scan — not the cause of the crash, and not fixed
+  here (code signing is still deferred, needs a paid cert).
+
 ## [0.20.1] - 2026-06-16
 
 ### Fixed (release workflow broke during packaging)

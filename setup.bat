@@ -25,39 +25,39 @@ if not exist "%GRUNT%" (
 )
 echo [ok] found grunt.exe
 
-REM --- 1. Piper engine ------------------------------------------------------
-set "PIPER_DIR=%cd%\piper"
-set "PIPER_EXE="
-if exist "%PIPER_DIR%\piper\piper.exe" set "PIPER_EXE=%PIPER_DIR%\piper\piper.exe"
-if exist "%PIPER_DIR%\piper.exe"       set "PIPER_EXE=%PIPER_DIR%\piper.exe"
+REM --- 1. Piper engine (modern Python package; the old standalone exe crashes
+REM        with a ucrtbase error on current Windows) -------------------------
+set "PIPER_CMD="
+REM is a usable piper already available?
+piper --help >NUL 2>&1 && set "PIPER_CMD=piper"
+if not defined PIPER_CMD ( python -m piper --help >NUL 2>&1 && set "PIPER_CMD=python -m piper" )
+if not defined PIPER_CMD ( py -m piper --help >NUL 2>&1 && set "PIPER_CMD=py -m piper" )
 
-if defined PIPER_EXE (
-  echo [ok] Piper already present: !PIPER_EXE!
+if defined PIPER_CMD (
+  echo [ok] Piper already available via: !PIPER_CMD!
 ) else (
-  echo [1/6] Downloading Piper TTS engine...
-  set "PIPER_ZIP=%cd%\piper_windows_amd64.zip"
-  set "PIPER_URL=https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip"
-  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '!PIPER_URL!' -OutFile '!PIPER_ZIP!' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
-  if errorlevel 1 ( echo [X] Could not download Piper. Check your internet connection. & goto :fail )
-  echo       Extracting...
-  powershell -NoProfile -Command "try { Expand-Archive -Force '!PIPER_ZIP!' '%PIPER_DIR%' } catch { Write-Host $_.Exception.Message; exit 1 }"
-  if errorlevel 1 ( echo [X] Could not extract Piper zip. & goto :fail )
-  del "!PIPER_ZIP!" >nul 2>&1
-  REM re-detect after extraction
-  if exist "%PIPER_DIR%\piper\piper.exe" set "PIPER_EXE=%PIPER_DIR%\piper\piper.exe"
-  if exist "%PIPER_DIR%\piper.exe"       set "PIPER_EXE=%PIPER_DIR%\piper.exe"
+  echo [1/6] Installing Piper TTS engine via pip...
+  REM need Python + pip
+  set "PY="
+  python --version >NUL 2>&1 && set "PY=python"
+  if not defined PY ( py --version >NUL 2>&1 && set "PY=py" )
+  if not defined PY (
+    echo [X] Python not found. Install Python 3.9+ from https://python.org
+    echo     (check "Add python.exe to PATH" during install^), then re-run setup.bat.
+    goto :fail
+  )
+  !PY! -m pip install --quiet --upgrade piper-tts
+  if errorlevel 1 ( echo [X] pip install piper-tts failed. Check your connection. & goto :fail )
+  !PY! -m piper --help >NUL 2>&1 && set "PIPER_CMD=!PY! -m piper"
 )
 
-if not defined PIPER_EXE (
-  echo [X] piper.exe not found after download/extract. The release layout may
-  echo     have changed. Look inside the 'piper' folder and see SETUP.md.
+if not defined PIPER_CMD (
+  echo [X] Piper still not runnable after install. See SETUP.md.
   goto :fail
 )
-echo [ok] piper.exe ready: !PIPER_EXE!
-
-REM put piper on PATH for this session
-for %%I in ("!PIPER_EXE!") do set "PIPER_BIN_DIR=%%~dpI"
-set "PATH=!PIPER_BIN_DIR!;%PATH%"
+echo [ok] piper ready: !PIPER_CMD!
+REM grunt reads this to know how to invoke piper
+set "GRUNT_PIPER_CMD=!PIPER_CMD!"
 
 REM --- 2. Voice model (LJ Speech - public domain, verifiable URL) -----------
 REM  Female base voice. For the MALE Norman voice: download norman.onnx +
@@ -81,7 +81,7 @@ echo [ok] voice model ready: %MODEL%
 
 REM --- 3/4. verify the chain ------------------------------------------------
 echo(
-echo [3/6] Piper on PATH for this session.
+echo [3/6] Using piper: %GRUNT_PIPER_CMD%
 echo [4/6] Verifying with: grunt doctor --live
 echo(
 "%GRUNT%" doctor --live
