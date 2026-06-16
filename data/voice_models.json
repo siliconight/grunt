@@ -16,14 +16,17 @@
       "notes": "Clean transitive chain: rhasspy/piper-voices repo is MIT; this voice trained FROM SCRATCH on public-domain LJ Speech (not fine-tuned from a restricted base like blizzard/lessac). Good default female base. Download .onnx + .onnx.json where grunt's --model can find them. Verified vs published MODEL_CARD 2026-06; re-confirm before commercial release."
     },
     {
-      "id": "piper-en_US-cc0-example",
+      "id": "piper-en_US-norman",
       "generator": "piper",
-      "model_file": "en_US-cc0-example-medium.onnx",
-      "license": "CC0-1.0",
+      "model_file": "norman.onnx",
+      "license": "public-domain (model + dataset)",
       "commercial_use": true,
       "redistributable": true,
-      "source_url": "https://huggingface.co/<cc0-voice>",
-      "notes": "PLACEHOLDER template for adding a true CC0 voice (e.g. a male base). Do NOT generate from this id until replaced — its model_file does not exist."
+      "source_url": "https://brycebeattie.com/files/tts/",
+      "dataset": "LibriVox public-domain recordings (~15.5h), compiled by Bryce Beattie",
+      "dataset_license": "public domain",
+      "voice_traits": "US English, male, single speaker, trained from scratch on public-domain data",
+      "notes": "Male base voice. Same creator as our LJ Speech voice (Bryce Beattie). Trained FROM SCRATCH (cleanest chain) on public-domain LibriVox recordings; creator marks it public domain and explicitly grants redistribution. CAVEAT: provenance is the creator's own attestation on his personal site (not an institutional HuggingFace model card like LJ Speech) — credible and same trusted source, but a personal statement. Download norman.onnx + .onnx.json from the source URL. Verified 2026-06; re-confirm before commercial release. Alternatives from same source: 'John' (finetuned from Kristin, extra chain link), 'Bryce' (creator's own ~750 samples)."
     }
   ]
 }

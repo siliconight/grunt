@@ -151,7 +151,10 @@ Tasks:
       v0.7.0, so Deep Big, Woman (raspy), Orc, and Demon are now fully realized
       rather than approximations.
 - [ ] `--character` on `generate` too (generate base voice per character)
-- [ ] A second base voice (male) so presets aren't all one timbre
+- [x] A second base voice (male): `piper-en_US-norman` (public-domain LibriVox,
+      trained from scratch, same creator as the LJ Speech voice). Male-coded
+      characters (grunt, deep_big, orc, demon, yelling_man, robot) now use it;
+      woman_raspy and yelling_woman stay on LJ Speech. Roster spans two timbres.
 - [ ] GUI character dropdown (preview by ear per character)
 - [x] PSOLA for clean repitch/retime (v0.8.0): phase-coherent time-stretch,
       pitch-shift via resample+PSOLA-restore, graceful fallback to resample on

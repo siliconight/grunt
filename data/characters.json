@@ -5,7 +5,7 @@
     {
       "id": "grunt",
       "display_name": "Grunt (gruff low male)",
-      "base_voice": "piper-en_US-cc0-example",
+      "base_voice": "piper-en_US-norman",
       "pitch_offset_st": -3.0,
       "fx_preset": "clean_ps1",
       "emotion_bias": "neutral",
@@ -14,7 +14,7 @@
     {
       "id": "robot",
       "display_name": "Robot",
-      "base_voice": "piper-en_US-cc0-example",
+      "base_voice": "piper-en_US-norman",
       "pitch_offset_st": 0.0,
       "fx_preset": "robot_ps1",
       "emotion_bias": "neutral",
@@ -33,7 +33,7 @@
     {
       "id": "yelling_man",
       "display_name": "Yelling Man (Wilhelm)",
-      "base_voice": "piper-en_US-cc0-example",
+      "base_voice": "piper-en_US-norman",
       "pitch_offset_st": 0.0,
       "fx_preset": "clean_ps1",
       "emotion_bias": "angry",
@@ -43,7 +43,7 @@
     {
       "id": "deep_big",
       "display_name": "Deep Big (very low gruff male)",
-      "base_voice": "piper-en_US-cc0-example",
+      "base_voice": "piper-en_US-norman",
       "pitch_offset_st": -7.0,
       "fx_preset": "clean_ps1",
       "emotion_bias": "neutral",
@@ -63,7 +63,7 @@
     {
       "id": "orc",
       "display_name": "Orc (barky monster)",
-      "base_voice": "piper-en_US-cc0-example",
+      "base_voice": "piper-en_US-norman",
       "pitch_offset_st": -4.0,
       "fx_preset": "monster_ps1",
       "emotion_bias": "angry",
@@ -73,7 +73,7 @@
     {
       "id": "demon",
       "display_name": "Demon",
-      "base_voice": "piper-en_US-cc0-example",
+      "base_voice": "piper-en_US-norman",
       "pitch_offset_st": -9.0,
       "fx_preset": "monster_ps1",
       "emotion_bias": "angry",
