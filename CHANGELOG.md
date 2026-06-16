@@ -4,6 +4,30 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.14.0] - 2026-06-16
+
+### Changed (GUI: character dropdown + export fix)
+- The GUI now leads with a **Character dropdown** (the eight presets from
+  data/characters.json) instead of a typed voice-bank path. Selecting a
+  character applies its full recipe (pitch / FX / emotion / formant / sub /
+  rasp) via the same Engine::Options the CLI uses — so the GUI and CLI match.
+- The voice-bank folder field moved under an **"advanced"** toggle (most users
+  never need it); emotion/style overrides live there too, for the "(none)"
+  character.
+- The bundled bank auto-loads on first frame, so a new user sees a working
+  state without hunting for the Load button.
+
+### Fixed
+- **Export failure** (`cannot open out/line.ogg` in the v0.12 screenshot): the
+  GUI now creates the export path's parent directory before writing, and the
+  default export path is a plain `line.ogg`. Status shows the absolute path on
+  success.
+
+### Note
+- GUI can't be built/run in the dev sandbox; this was type-checked against the
+  real engine headers (clean) and is CI-built for the Windows package. The
+  window/interaction is validated on Windows.
+
 ## [0.13.0] - 2026-06-16
 
 ### Changed (intelligibility — words, not just sounds)

@@ -16,6 +16,7 @@
 #include "AudioOut.h"
 #include "Types.h"
 #include "ResourcePath.h"
+#include "Character.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -35,6 +36,7 @@
 #include <mutex>
 #include <string>
 #include <vector>
+#include <filesystem>
 
 using namespace voc;
 
@@ -119,7 +121,7 @@ int main(int argc, char** argv) {
 
     Engine engine;
     Player player;
-    std::string status = "Load a voice bank to begin.";
+    std::string status = "Pick a character, Load, then Play.";
     char voice_dir[256];
     std::snprintf(voice_dir, sizeof(voice_dir), "%s",
                   voc::resource_path("voices/heavy_brother").c_str());
@@ -128,21 +130,58 @@ int main(int argc, char** argv) {
     int fx_idx = 0;
     int seed = 42;
     bool lock_seed = true; // deterministic by default
-    char export_path[256] = "out/line.ogg";
+    char export_path[256] = "line.ogg";
     int format_idx = 0;    // 0 ogg, 1 wav
+    bool show_advanced = false;
 
     const char* emotions[] = { "neutral", "urgent", "angry" };
     const char* fxs[] = { "clean_ps1", "radio_ps1", "monster_ps1", "robot_ps1", "muffled_mask" };
     const char* formats[] = { "ogg (Vorbis)", "wav" };
 
+    // Character presets — the primary control. Loaded from data/characters.json
+    // (resolved relative to the exe). Selecting one applies its recipe.
+    CharacterLibrary char_lib;
+    std::vector<std::string> char_ids;       // ids for lookup
+    std::vector<std::string> char_labels;    // display names for the combo
+    std::vector<const char*> char_label_ptrs;
+    {
+        std::string cerr;
+        if (char_lib.load(voc::resource_path("data/characters.json"), cerr)) {
+            for (const auto& c : char_lib.all()) {
+                char_ids.push_back(c.id);
+                char_labels.push_back(c.display_name.empty() ? c.id : c.display_name);
+            }
+        }
+        if (char_ids.empty()) { char_ids.push_back(""); char_labels.push_back("(none — raw bank)"); }
+        for (auto& s : char_labels) char_label_ptrs.push_back(s.c_str());
+    }
+    int character_idx = 0;
+
     bool player_ready = false;
     SynthResult last; // cached last render for export
 
     auto do_synth = [&]() -> bool {
-        if (!engine.voice_loaded()) { status = "No voice bank loaded."; return false; }
+        if (!engine.voice_loaded()) { status = "No voice bank loaded — click Load."; return false; }
         uint64_t s = lock_seed ? (uint64_t)seed
                                : (uint64_t)glfwGetTime() * 1000003ULL + 1;
-        last = engine.synth(text, (Emotion)emotion_idx, fxs[fx_idx], s);
+
+        // Apply the selected character preset (if any) as the CLI does.
+        Engine::Options opts;
+        Emotion emo = (Emotion)emotion_idx;
+        std::string fx = fxs[fx_idx];
+        const std::string& cid = char_ids[character_idx];
+        if (!cid.empty()) {
+            if (const CharacterPreset* cp = char_lib.find(cid)) {
+                fx  = cp->fx_preset;
+                emo = emotion_from_string(cp->emotion_bias);
+                opts.extra_pitch_st = cp->pitch_offset_st;
+                opts.extra_gain_db  = cp->gain_db;
+                opts.formant_shift  = cp->formant_shift;
+                opts.sub_layer      = cp->sub_layer;
+                opts.rasp           = cp->rasp ? 0.6 : 0.0;
+            }
+        }
+        last = engine.synth(text, emo, fx, s, opts);
         if (!last.ok) { status = "Synth failed: " + last.error; return false; }
         status = "Rendered " + std::to_string(last.units) + " units, peak "
                + std::to_string(last.peak_dbfs) + " dBFS";
@@ -161,25 +200,37 @@ int main(int argc, char** argv) {
                      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-        ImGui::TextUnformatted("Voice bank");
-        ImGui::InputText("##voice", voice_dir, sizeof(voice_dir));
+        // --- Character: the primary control ---
+        ImGui::TextUnformatted("Character");
+        ImGui::Combo("##character", &character_idx,
+                     char_label_ptrs.data(), (int)char_label_ptrs.size());
+
+        // Load the bank the character's clips live in. Auto-load on first use so
+        // a new user doesn't have to think about banks at all.
         ImGui::SameLine();
-        if (ImGui::Button("Load")) {
+        if (ImGui::Button("Load") || (!engine.voice_loaded() && ImGui::GetFrameCount() == 2)) {
             std::string err;
             if (engine.load_voice(voice_dir, err)) {
-                status = "Loaded voice: " + engine.voice_id();
+                status = "Loaded bank: " + engine.voice_id() + "  — pick a character and Play.";
                 if (!player_ready) player_ready = player.init(engine.sample_rate());
             } else {
                 status = "Load failed: " + err;
             }
         }
 
+        // Advanced: the underlying bank path (most users never touch this).
+        ImGui::Checkbox("advanced", &show_advanced);
+        if (show_advanced) {
+            ImGui::TextUnformatted("Voice bank folder");
+            ImGui::InputText("##voice", voice_dir, sizeof(voice_dir));
+            ImGui::Combo("emotion", &emotion_idx, emotions, IM_ARRAYSIZE(emotions));
+            ImGui::Combo("style", &fx_idx, fxs, IM_ARRAYSIZE(fxs));
+            ImGui::TextDisabled("(emotion/style apply only to the (none) character)");
+        }
+
         ImGui::Separator();
         ImGui::TextUnformatted("Line");
         ImGui::InputText("##text", text, sizeof(text));
-
-        ImGui::Combo("emotion", &emotion_idx, emotions, IM_ARRAYSIZE(emotions));
-        ImGui::Combo("style", &fx_idx, fxs, IM_ARRAYSIZE(fxs));
 
         ImGui::Checkbox("lock seed", &lock_seed);
         if (lock_seed) { ImGui::SameLine(); ImGui::InputInt("##seed", &seed); }
@@ -201,9 +252,16 @@ int main(int argc, char** argv) {
                 if (fmt == AudioFormat::Ogg && !ogg_supported()) {
                     status = "This build lacks libvorbis — switch format to wav.";
                 } else {
+                    // create the parent directory if the path includes one, so
+                    // "out/line.ogg" and the like don't fail to open.
+                    std::error_code ec;
+                    std::filesystem::path p(export_path);
+                    if (p.has_parent_path() && !p.parent_path().empty())
+                        std::filesystem::create_directories(p.parent_path(), ec);
                     std::string err;
                     if (write_audio(export_path, last.audio, fmt, 0.4f, err))
-                        status = std::string("Exported: ") + export_path;
+                        status = std::string("Exported: ")
+                               + std::filesystem::absolute(p, ec).string();
                     else
                         status = "Export failed: " + err;
                 }

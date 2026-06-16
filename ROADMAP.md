@@ -162,7 +162,8 @@ Tasks:
       trained from scratch, same creator as the LJ Speech voice). Male-coded
       characters (grunt, deep_big, orc, demon, yelling_man, robot) now use it;
       woman_raspy and yelling_woman stay on LJ Speech. Roster spans two timbres.
-- [ ] GUI character dropdown (preview by ear per character)
+- [x] GUI character dropdown (the eight presets; applies the recipe) + export
+      creates its output dir (v0.14.0)
 - [x] PSOLA for clean repitch/retime (v0.8.0): phase-coherent time-stretch,
       pitch-shift via resample+PSOLA-restore, graceful fallback to resample on
       non-periodic clips. Completes Phase 3.
