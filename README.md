@@ -171,6 +171,38 @@ whole pipeline offline without installing Piper.
 > training data. Confirm each model (and its dataset) before adding it to the
 > registry; the gate then keeps you honest.
 
+## Efforts & onomatopoeia (the screams, grunts, and "aaargh"s)
+
+Games need piles of non-lexical vocalizations — pain, exertion, fear, death
+cries, battle yells — the stuff no soloist wants to record. grunt handles these
+two ways, both as flags on `synth`, both composing with `--character`.
+
+**Named efforts** (from `data/efforts.json` — ask for the intent):
+
+```
+grunt synth --effort pain_death --character yelling_man --out guard_death.ogg
+```
+
+A guard being shot is `pain_death`. The same effort through a different
+character is a different sound for free — `--character orc` gives a monster's
+death roar, `--character robot` a glitchy shutdown. Run `--effort` with an
+unknown id to list them (pain_hit, pain_death, exertion, fear, gasp, laugh,
+yell, alert). Edit the file to add your game's own.
+
+**Onomatopoeia passthrough** (voice a literal spelling):
+
+```
+grunt synth --onomatopoeia "aaaghhk" --character yelling_man --out yell.ogg
+```
+
+The spelling is voiced as a sound, not pronounced as a word. Repeated letters
+mean more — `"aaaargh"` is longer and more intense than `"argh"`. Good when you
+want to hand-author an exact vocalization rather than pick a preset.
+
+Both flow through the same pipeline as everything else — prosody, unit
+selection, FX, character pitch/gain — so a bank with dedicated effort units uses
+them, and a bank without falls back to grunts shaped by the effort's intensity.
+
 ## The ship gate (clean licensing, enforced)
 
 Every clip carries a `provenance` block in `units.json`. `verify` — and

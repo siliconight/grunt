@@ -46,6 +46,15 @@ public:
                       uint64_t seed,
                       const Options& opts);
 
+    // Render a non-lexical vocalization (effort / onomatopoeia) from a phoneme
+    // sequence, bypassing text normalization + syllable planning. intensity
+    // (0..1) scales gain and duration. Composes with character Options.
+    SynthResult synth_vocalization(const PhonemeSeq& seq,
+                                   double intensity,
+                                   const std::string& fx_preset,
+                                   uint64_t seed,
+                                   const Options& opts);
+
 private:
     UnitDatabase db_;
     bool loaded_ = false;

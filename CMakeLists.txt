@@ -35,6 +35,7 @@ add_executable(grunt
     src/PhonemeMapper.cpp
     src/Generator.cpp
     src/Character.cpp
+    src/Vocalization.cpp
     src/SyllablePlanner.cpp
     src/ProsodyPlanner.cpp
     src/UnitDatabase.cpp
@@ -78,6 +79,7 @@ add_executable(grunt_tests
     src/PhonemeMapper.cpp
     src/Generator.cpp
     src/Character.cpp
+    src/Vocalization.cpp
     src/SyllablePlanner.cpp
     src/ProsodyPlanner.cpp
     src/UnitDatabase.cpp
@@ -121,6 +123,7 @@ if(GRUNT_BUILD_GUI)
     src/PhonemeMapper.cpp
     src/Generator.cpp
     src/Character.cpp
+    src/Vocalization.cpp
         src/SyllablePlanner.cpp
         src/ProsodyPlanner.cpp
         src/UnitDatabase.cpp

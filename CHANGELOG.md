@@ -4,6 +4,31 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.6.0] - 2026-06-16
+
+### Added (efforts & onomatopoeia — non-lexical vocalizations)
+- `--effort <id>` on `synth`: renders a named vocalization from
+  `data/efforts.json` (pain_hit, pain_death, exertion, fear, gasp, laugh, yell,
+  alert). Each maps to an ARPAbet pattern + intensity + emotion. Unknown id
+  lists the menu with descriptions.
+- `--onomatopoeia "aaargh"` on `synth`: voices a literal spelling as a sound
+  rather than pronouncing it as a word. Repeated letters raise intensity and
+  length (`"aaaargh"` > `"argh"`).
+- Both compose with `--character`: the same effort through yelling_man / orc /
+  robot gives a human scream / monster roar / robot glitch for free.
+- `Engine::synth_vocalization`: renders from a `PhonemeSeq`, bypassing text
+  normalization + syllable planning; intensity scales gain (up to +6 dB) and
+  duration (up to +60%). Reuses the existing prosody/selection/render/FX path,
+  so vocalizations work whether or not the bank has dedicated effort units
+  (falls back to grunts otherwise).
+- `Vocalization` module (`EffortLibrary`, `effort_to_phonemes`,
+  `onomatopoeia_to_phonemes`) + tests.
+
+### Why
+- Closes a real gap: the voice-bank structure (TDD §8) always listed efforts,
+  but nothing produced or selected them. "A guard yelling when shot" is exactly
+  this category — squarely the "everything else" the north star targets.
+
 ## [0.5.0] - 2026-06-16
 
 ### Added (character presets — "type text, pick a character")

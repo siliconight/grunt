@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "_comment": "Named non-lexical vocalizations (efforts) for game audio — the pain/exertion/fear/death/laugh sounds no one wants to record themselves. Each maps to an ARPAbet phoneme pattern + intensity + emotion bias. `grunt synth --effort <id>` renders one. Combine with --character for who makes the sound (a yelling_man pain_death vs. an orc one). Phoneme patterns are deliberately vowel-heavy and short; the prosody/FX/character layers shape them into a believable vocalization. Edit freely — add your game's own efforts here.",
+  "efforts": [
+    { "id": "pain_hit",    "phonemes": ["AH", "G"],            "intensity": 0.8, "emotion": "urgent", "_desc": "quick grunt of being hit — 'ugh!'" },
+    { "id": "pain_death",  "phonemes": ["AA", "AA", "HH", "K"], "intensity": 1.0, "emotion": "urgent", "_desc": "drawn-out death cry — 'aaargh!'" },
+    { "id": "exertion",    "phonemes": ["HH", "AH"],            "intensity": 0.7, "emotion": "neutral", "_desc": "effort/lifting/swinging — 'hah!'" },
+    { "id": "fear",        "phonemes": ["AH", "AH"],            "intensity": 0.6, "emotion": "urgent", "_desc": "startled/afraid gasp — 'ah-ah'" },
+    { "id": "gasp",        "phonemes": ["HH", "AA"],            "intensity": 0.5, "emotion": "urgent", "_desc": "sharp inhale of shock" },
+    { "id": "laugh",       "phonemes": ["HH", "AH", "HH", "AH"], "intensity": 0.6, "emotion": "neutral", "_desc": "'ha-ha'" },
+    { "id": "yell",        "phonemes": ["AA"],                  "intensity": 1.0, "emotion": "angry", "_desc": "open battle yell — 'aaa!'" },
+    { "id": "alert",       "phonemes": ["HH", "EY"],            "intensity": 0.8, "emotion": "urgent", "_desc": "'hey!' — spotting the player" }
+  ]
+}

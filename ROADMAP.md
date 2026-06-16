@@ -57,6 +57,10 @@ game — not the studio chasing fidelity.
   TTS model, no recording. Registry + ship gate keep it airtight. (v0.4.0)**
   This is now grunt's primary workflow per the north star; the rest of the
   roadmap exists to make its output sound better, not to replace it.
+- [x] **Efforts & onomatopoeia (v0.6.0)** — `--effort <id>` (named, from
+  data/efforts.json) and `--onomatopoeia "aaargh"` (literal spelling) on
+  `synth`, both composing with `--character`. Closes the long-standing TDD §8
+  gap where efforts were listed in the bank structure but never produced.
 
 ---
 

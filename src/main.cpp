@@ -11,6 +11,7 @@
 #include "Engine.h"
 #include "Generator.h"
 #include "Character.h"
+#include "Vocalization.h"
 
 #include <iostream>
 #include <fstream>
@@ -79,10 +80,14 @@ float resolve_quality(const Args& a) {
 
 int cmd_synth(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
-    if (!a.has("text") || !a.has("voice") || !a.has("out")) {
-        std::cerr << "usage: grunt synth --text \"...\" --voice <dir> --out <file>"
+    bool has_input = a.has("text") || a.has("effort") || a.has("onomatopoeia");
+    if (!has_input || !a.has("voice") || !a.has("out")) {
+        std::cerr << "usage: grunt synth (--text \"...\" | --effort <id> | --onomatopoeia \"aaargh\")"
+                     " --voice <dir> --out <file>"
                      " [--character <name>] [--emotion neutral|urgent|angry]"
                      " [--style clean_ps1] [--format ogg|wav] [--quality 0.4] [--seed N]\n"
+                     "  --effort renders a named vocalization from data/efforts.json (pain_death, yell, ...).\n"
+                     "  --onomatopoeia voices a literal spelling as a sound (repeated letters = more intense).\n"
                      "  --character applies a preset from data/characters.json (overrides emotion/style).\n"
                      "  default format: ogg (Vorbis). out extension is set to match the format.\n";
         return 2;
@@ -130,7 +135,33 @@ int cmd_synth(int argc, char** argv) {
 
     Engine engine;
     if (!engine.load_voice(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
-    SynthResult res = engine.synth(a.get("text"), emo, fx, seed, opts);
+
+    SynthResult res;
+    if (a.has("effort")) {
+        EffortLibrary elib;
+        std::string epath = a.get("efforts", "data/efforts.json");
+        if (!elib.load(epath, err)) { std::cerr << "efforts: " << err << "\n"; return 1; }
+        const Effort* ef = elib.find(a.get("effort"));
+        if (!ef) {
+            std::cerr << "effort '" << a.get("effort") << "' not found in " << epath << "\n"
+                      << "available efforts:\n";
+            for (const auto& e : elib.all())
+                std::cerr << "  " << e.id << "  — " << e.desc << "\n";
+            return 1;
+        }
+        PhonemeSeq seq = effort_to_phonemes(*ef);
+        if (!a.has("emotion")) emo = ef->emotion;
+        seq.emotion = emo;
+        res = engine.synth_vocalization(seq, ef->intensity, fx, seed, opts);
+    } else if (a.has("onomatopoeia")) {
+        PhonemeMapper mapper;  // letter-level G2P; no dict needed for onomatopoeia
+        double intensity = 0.7;
+        PhonemeSeq seq = onomatopoeia_to_phonemes(a.get("onomatopoeia"), mapper, intensity);
+        if (a.has("emotion")) seq.emotion = emo;
+        res = engine.synth_vocalization(seq, intensity, fx, seed, opts);
+    } else {
+        res = engine.synth(a.get("text"), emo, fx, seed, opts);
+    }
     if (!res.ok) { std::cerr << "synth failed: " << res.error << "\n"; return 1; }
     AudioBuffer& buf = res.audio;
 

@@ -5,6 +5,7 @@
 #include "ShipGate.h"
 #include "Generator.h"
 #include "Character.h"
+#include "Vocalization.h"
 #include "Json.h"
 #include <iostream>
 #include <cassert>
@@ -214,6 +215,46 @@ void test_character_library() {
     CHECK(lib.find("missing") == nullptr, "character: missing -> null");
 }
 
+void test_vocalization() {
+    // effort library load
+    std::string epath = tmp_path("_grunt_efforts.json");
+    {
+        std::ofstream of(epath);
+        of << R"({"efforts":[
+          {"id":"pain_death","phonemes":["AA","AA","HH","K"],"intensity":1.0,"emotion":"urgent","_desc":"death cry"},
+          {"id":"yell","phonemes":["AA"],"intensity":1.0,"emotion":"angry","_desc":"battle yell"}
+        ]})";
+    }
+    EffortLibrary el; std::string err;
+    CHECK(el.load(epath, err), "vocal: effort library loads");
+    CHECK(el.all().size() == 2, "vocal: 2 efforts");
+    const Effort* pd = el.find("pain_death");
+    CHECK(pd != nullptr && pd->phonemes.size() == 4, "vocal: pain_death phonemes");
+    CHECK(pd->intensity == 1.0, "vocal: pain_death intensity");
+    CHECK(el.find("missing") == nullptr, "vocal: missing effort -> null");
+
+    // effort -> phoneme seq
+    PhonemeSeq es = effort_to_phonemes(*pd);
+    CHECK(es.words.size() == 1 && es.words[0].phonemes.size() == 4, "vocal: effort seq built");
+    CHECK(es.words[0].source == PhonemeSource::Passthrough, "vocal: effort is passthrough");
+    CHECK(es.terminal_punct == "!", "vocal: effort is exclamatory");
+
+    // onomatopoeia: repeated letters raise intensity + length
+    PhonemeMapper m;
+    double i_long = 0, i_short = 0;
+    PhonemeSeq sl = onomatopoeia_to_phonemes("aaaargh", m, i_long);
+    PhonemeSeq ss = onomatopoeia_to_phonemes("argh", m, i_short);
+    CHECK(i_long > i_short, "vocal: more repeats -> higher intensity");
+    CHECK(sl.words[0].phonemes.size() >= ss.words[0].phonemes.size(),
+          "vocal: stretched vowels -> at least as many units");
+    CHECK(!ss.words[0].phonemes.empty(), "vocal: onomatopoeia produces phonemes");
+
+    // intensity is clamped to 1.0
+    double i_huge = 0;
+    onomatopoeia_to_phonemes("aaaaaaaaaaaaaaa", m, i_huge);
+    CHECK(i_huge <= 1.0, "vocal: intensity clamped to 1.0");
+}
+
 int main() {
     test_normalizer();
     test_syllable();
@@ -225,6 +266,7 @@ int main() {
     test_phoneme_mapper();
     test_generator_registry();
     test_character_library();
+    test_vocalization();
     test_renderer_clipping();
     test_ship_gate_logic();
     std::cout << (failures == 0 ? "\nALL TESTS PASSED\n" : "\nTESTS FAILED\n");
