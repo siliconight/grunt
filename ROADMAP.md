@@ -92,14 +92,18 @@ Goal: short lines sound game-ready from real syllable assets.
 
 ---
 
-## Phase 3 — Diphone Smoothing  (TDD §18 Phase 3)  — [ ]
+## Phase 3 — Diphone Smoothing & Renderer DSP  (TDD §18 Phase 3)  — [~] PARTIAL
 
-Goal: improve intelligibility via diphone units + real unit selection.
+Goal: improve intelligibility via diphone units + real unit selection, and
+raise renderer quality (formant/pitch/time DSP). The DSP sub-thread (which the
+character roster depended on) is complete; diphone/Viterbi selection remains.
 
+- [x] Formant shift / sub-octave / rasp character DSP (v0.7.0, §6.6)
+- [x] PSOLA repitch/retime: phase-coherent time-stretch, pitch via
+      resample+PSOLA-restore, graceful fallback on non-periodic audio (v0.8.0, §6.6)
 - [ ] Diphone unit support + metadata (start/end phone) (§9)
 - [ ] Join-cost scoring with spectral/pitch discontinuity (§6.5)
 - [ ] Viterbi lattice search (replace greedy selector) (§6.5)
-- [ ] Better pitch/duration matching; PSOLA/WSOLA time-stretch (§6.6)
 - [ ] Tightened anti-repetition over a window (§6.5)
 
 ---
@@ -149,7 +153,9 @@ Tasks:
 - [ ] `--character` on `generate` too (generate base voice per character)
 - [ ] A second base voice (male) so presets aren't all one timbre
 - [ ] GUI character dropdown (preview by ear per character)
-- [ ] PSOLA for clean repitch/retime across a small unit set (remaining Phase 3)
+- [x] PSOLA for clean repitch/retime (v0.8.0): phase-coherent time-stretch,
+      pitch-shift via resample+PSOLA-restore, graceful fallback to resample on
+      non-periodic clips. Completes Phase 3.
 - [ ] Each preset checked against the north star (lowers barrier, stays airtight)
 
 ---

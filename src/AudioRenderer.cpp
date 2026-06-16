@@ -101,6 +101,131 @@ void apply_rasp(std::vector<float>& s, double amt) {
     }
 }
 
+// ---- PSOLA (Pitch-Synchronous Overlap-Add) --------------------------------
+// Repitch and/or retime voiced audio without the formant/quality artifacts of
+// plain resampling. Pitch and time are handled independently: grain spacing
+// scales with the pitch ratio, grain count with the time ratio.
+//
+// Pitch-mark detection is the fragile part, so this is conservative: it
+// estimates a single average period by autocorrelation and only proceeds if the
+// signal is reliably periodic (clear autocorrelation peak). If not, it reports
+// failure (returns false) and the caller falls back to resample — better a
+// known-OK result than PSOLA garbage on an unvoiced/noisy clip.
+
+// Estimate fundamental period (in samples) via normalized autocorrelation.
+// Returns 0 if no confident periodicity found.
+size_t estimate_period(const std::vector<float>& s, int sr) {
+    if (s.size() < 64) return 0;
+    // search 70..400 Hz (typical voice range), clamped to signal length
+    size_t min_lag = (size_t)std::max(2.0, sr / 400.0);
+    size_t max_lag = (size_t)std::min<double>(sr / 70.0, s.size() / 2.0);
+    if (max_lag <= min_lag) return 0;
+
+    double energy = 0.0;
+    for (float x : s) energy += (double)x * x;
+    if (energy < 1e-9) return 0;
+
+    double best_norm = 0.0; size_t best_lag = 0;
+    for (size_t lag = min_lag; lag <= max_lag; ++lag) {
+        double corr = 0.0, e2 = 0.0;
+        for (size_t i = 0; i + lag < s.size(); ++i) {
+            corr += (double)s[i] * s[i + lag];
+            e2   += (double)s[i + lag] * s[i + lag];
+        }
+        double norm = (e2 > 1e-9) ? corr / std::sqrt(energy * e2) : 0.0;
+        if (norm > best_norm) { best_norm = norm; best_lag = lag; }
+    }
+    // require a clear peak — below this, treat as unvoiced/aperiodic
+    if (best_norm < 0.6) return 0;
+    return best_lag;
+}
+
+// PSOLA time-stretch (the robust, phase-coherent operation): change duration
+// while preserving pitch by repeating/skipping pitch-synchronous grains.
+// Returns false if the clip isn't reliably periodic.
+bool psola_timestretch(const std::vector<float>& in, int sr,
+                       double time_ratio, std::vector<float>& out) {
+    if (in.empty() || time_ratio <= 0.0) return false;
+    size_t period = estimate_period(in, sr);
+    if (period == 0) return false;
+
+    std::vector<size_t> marks;
+    for (size_t m = period; m + period < in.size(); m += period) marks.push_back(m);
+    if (marks.size() < 2) return false;
+
+    size_t grain_half = period;
+    auto grain_at = [&](size_t center, std::vector<float>& g) {
+        g.assign(2 * grain_half, 0.f);
+        for (size_t i = 0; i < 2 * grain_half; ++i) {
+            long src = (long)center - (long)grain_half + (long)i;
+            if (src < 0 || src >= (long)in.size()) continue;
+            double w = 0.5 - 0.5 * std::cos(2 * kPi * i / (2 * grain_half - 1));
+            g[i] = (float)(in[src] * w);
+        }
+    };
+
+    // synthesis keeps the SAME grain spacing (period) -> pitch unchanged; only
+    // the number of grains changes with time_ratio. Phase stays coherent
+    // because adjacent synthesis grains are adjacent analysis grains.
+    size_t out_len = (size_t)(in.size() * time_ratio);
+    out.assign(out_len, 0.f);
+    std::vector<float> wsum(out_len, 0.f);
+    std::vector<float> g;
+
+    for (size_t syn_pos = 0; syn_pos < out_len; syn_pos += period) {
+        double ana_pos = syn_pos / time_ratio;       // map back to analysis time
+        size_t best = 0; double bestd = 1e18;
+        for (size_t k = 0; k < marks.size(); ++k) {
+            double d = std::fabs((double)marks[k] - ana_pos);
+            if (d < bestd) { bestd = d; best = k; }
+        }
+        grain_at(marks[best], g);
+        for (size_t i = 0; i < g.size(); ++i) {
+            long dst = (long)syn_pos - (long)grain_half + (long)i;
+            if (dst < 0 || dst >= (long)out_len) continue;
+            double w = 0.5 - 0.5 * std::cos(2 * kPi * i / (2 * grain_half - 1));
+            out[(size_t)dst]  += g[i];
+            wsum[(size_t)dst] += (float)w;
+        }
+    }
+    for (size_t i = 0; i < out_len; ++i)
+        if (wsum[i] > 1e-6f) out[i] /= wsum[i];
+    return true;
+}
+
+// PSOLA repitch+retime. pitch_ratio>1 raises pitch; time_ratio>1 lengthens.
+// Pitch-shift = resample (moves pitch, changes length) then PSOLA time-stretch
+// to restore the intended duration. This is the standard robust combination —
+// it sidesteps the per-grain phase alignment that pure TD-PSOLA pitch-shift
+// needs, and pairs with the separate formant stage for natural results.
+// Returns false (leaving out untouched) if the clip isn't reliably periodic.
+bool psola(const std::vector<float>& in, int sr,
+           double pitch_ratio, double time_ratio,
+           std::vector<float>& out) {
+    if (in.empty() || pitch_ratio <= 0.0 || time_ratio <= 0.0) return false;
+    if (estimate_period(in, sr) == 0) return false;  // not periodic -> fallback
+
+    // final target length is set by time_ratio relative to the input
+    size_t target_n = (size_t)(in.size() * time_ratio);
+    if (target_n < 2) return false;
+
+    std::vector<float> work = in;
+    if (std::fabs(pitch_ratio - 1.0) > 1e-3) {
+        // resample shifts pitch up by pitch_ratio and shortens by the same
+        work = resample(work, pitch_ratio);
+        if (work.size() < 4) return false;
+    }
+    // now restore (or set) duration to target_n via phase-coherent time-stretch
+    double tr = (double)target_n / (double)work.size();
+    std::vector<float> stretched;
+    if (!psola_timestretch(work, sr, tr, stretched)) {
+        // resampled signal may have shifted out of the voiced range; refit
+        stretched = fit_to_length(work, target_n);
+    }
+    out = std::move(stretched);
+    return true;
+}
+
 } // namespace dsp
 
 AudioBuffer AudioRenderer::render(const std::vector<SelectedUnit>& sel,
@@ -126,13 +251,29 @@ AudioBuffer AudioRenderer::render(const std::vector<SelectedUnit>& sel,
         if (std::fabs(su.prosody.formant_shift) > 1e-3)
             s = dsp::formant_shift(s, su.prosody.formant_shift);
 
-        // pitch shift via resample ratio (positive semitones -> higher pitch)
-        double ratio = std::pow(2.0, su.prosody.pitch_offset_st / 12.0);
-        if (std::fabs(su.prosody.pitch_offset_st) > 1e-3) s = resample(s, ratio);
-
-        // fit to target duration
+        // pitch + duration via PSOLA (artifact-free, independent control).
+        // Falls back to the resample+refit path when the clip isn't reliably
+        // periodic (PSOLA declines on unvoiced/noisy grains).
+        double pitch_ratio = std::pow(2.0, su.prosody.pitch_offset_st / 12.0);
         size_t target_n = (size_t)((double)su.prosody.duration_ms * sr / 1000.0);
-        if (target_n > 0) s = fit_to_length(s, target_n);
+        bool need_pitch = std::fabs(su.prosody.pitch_offset_st) > 1e-3;
+        bool need_time  = target_n > 0 && target_n != s.size();
+
+        bool psola_ok = false;
+        if (need_pitch || need_time) {
+            double time_ratio = (target_n > 0) ? (double)target_n / (double)s.size() : 1.0;
+            std::vector<float> ps;
+            if (dsp::psola(s, sr, need_pitch ? pitch_ratio : 1.0,
+                           need_time ? time_ratio : 1.0, ps) && !ps.empty()) {
+                s = std::move(ps);
+                psola_ok = true;
+            }
+        }
+        if (!psola_ok) {
+            // fallback: old resample (pitch+speed) then crude refit (duration)
+            if (need_pitch) s = resample(s, pitch_ratio);
+            if (target_n > 0) s = fit_to_length(s, target_n);
+        }
 
         // sub-octave layer (chest/size) and rasp (grit) — character DSP
         if (su.prosody.sub_layer) s = dsp::add_sub_octave(s, 0.7);

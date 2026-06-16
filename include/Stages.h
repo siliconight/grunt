@@ -93,6 +93,11 @@ namespace dsp {
 std::vector<float> formant_shift(const std::vector<float>& in, double shift);
 std::vector<float> add_sub_octave(const std::vector<float>& in, double mix);
 void apply_rasp(std::vector<float>& s, double amt);
+size_t estimate_period(const std::vector<float>& s, int sr);
+bool psola_timestretch(const std::vector<float>& in, int sr,
+                       double time_ratio, std::vector<float>& out);
+bool psola(const std::vector<float>& in, int sr,
+           double pitch_ratio, double time_ratio, std::vector<float>& out);
 }
 
 // §6.7 — PS1 FX presets

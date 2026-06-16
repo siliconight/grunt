@@ -294,6 +294,44 @@ void test_dsp() {
     CHECK(voc::dsp::add_sub_octave(empty, 0.7).empty(), "dsp: sub handles empty");
 }
 
+void test_psola() {
+    const int sr = 22050;
+    // a clean 200 Hz sine -> period should be ~ sr/200 = 110 samples
+    std::vector<float> tone(4410);
+    for (size_t i = 0; i < tone.size(); ++i)
+        tone[i] = 0.5f * std::sin(2 * voc::kPi * 200.0 * i / sr);
+
+    size_t period = voc::dsp::estimate_period(tone, sr);
+    CHECK(period > 95 && period < 125, "psola: detects ~200Hz period (110 samples)");
+
+    // aperiodic noise should be rejected (period 0) -> triggers fallback
+    std::vector<float> noise(4410);
+    uint32_t st = 12345;
+    for (auto& x : noise) { st = st * 1664525u + 1013904223u; x = ((st >> 9) / 4194304.0f) - 1.0f; }
+    size_t np = voc::dsp::estimate_period(noise, sr);
+    CHECK(np == 0, "psola: rejects aperiodic noise (graceful fallback)");
+
+    // time-stretch to 1.5x -> output length ~1.5x input
+    std::vector<float> out;
+    bool ok = voc::dsp::psola(tone, sr, 1.0, 1.5, out);
+    CHECK(ok, "psola: succeeds on periodic tone");
+    double ratio = (double)out.size() / tone.size();
+    CHECK(ratio > 1.4 && ratio < 1.6, "psola: time-stretch hits ~1.5x length");
+
+    // pitch up an octave, same length (time_ratio 1.0)
+    std::vector<float> up;
+    bool ok2 = voc::dsp::psola(tone, sr, 2.0, 1.0, up);
+    CHECK(ok2, "psola: pitch-shift succeeds");
+    CHECK(up.size() == tone.size(), "psola: pitch-only keeps length");
+    // the repitched output should itself be periodic at ~half the period
+    size_t up_period = voc::dsp::estimate_period(up, sr);
+    CHECK(up_period > 0 && up_period < period, "psola: pitched-up output has shorter period");
+
+    // empty / degenerate inputs are safe
+    std::vector<float> e_out;
+    CHECK(!voc::dsp::psola(std::vector<float>{}, sr, 2.0, 1.0, e_out), "psola: empty -> false");
+}
+
 int main() {
     test_normalizer();
     test_syllable();
@@ -307,6 +345,7 @@ int main() {
     test_character_library();
     test_vocalization();
     test_dsp();
+    test_psola();
     test_renderer_clipping();
     test_ship_gate_logic();
     std::cout << (failures == 0 ? "\nALL TESTS PASSED\n" : "\nTESTS FAILED\n");

@@ -4,6 +4,31 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.8.0] - 2026-06-16
+
+### Added (PSOLA — clean repitch/retime, completes the Phase 3 DSP thread)
+- `psola_timestretch`: phase-coherent, pitch-synchronous time-stretching —
+  changes duration while preserving pitch by repeating/skipping grains at the
+  detected pitch period. This is the robust core operation.
+- `psola`: repitch+retime. Pitch-shift is done as resample (moves pitch) then
+  PSOLA time-stretch to restore the target duration — the standard robust
+  combination that avoids the per-grain phase-alignment failure mode of naive
+  TD-PSOLA pitch-shifting. Pairs with the separate formant stage.
+- `estimate_period`: normalized-autocorrelation pitch detection (70–400 Hz)
+  with a confidence threshold; returns 0 on unvoiced/aperiodic audio.
+- Renderer now uses PSOLA for pitch/duration, with automatic fallback to the
+  resample+refit path when a clip isn't reliably periodic — never worse than
+  before, better when the audio is voiced.
+- Tests: period detection accuracy, aperiodic rejection (fallback path),
+  time-stretch length, pitch-shift period change, determinism preserved.
+
+### Note
+- Real DSP, best judged by ear; the sandbox verifies the math invariants and
+  that all eight characters still render deterministically. The pitch-shift
+  combination (resample+PSOLA) was chosen deliberately over pure TD-PSOLA
+  pitch-shift after the latter produced incoherent output in testing — a case
+  where "tests pass" caught a subtly wrong algorithm.
+
 ## [0.7.0] - 2026-06-16
 
 ### Added (Phase 3 character DSP — formant / sub-octave / rasp)
