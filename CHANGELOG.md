@@ -4,6 +4,30 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.16.0] - 2026-06-16
+
+### Added (one-click Windows talking setup)
+- `setup.bat`: a Windows script that automates the whole generate path —
+  downloads the Piper engine into `.\piper\`, downloads a public-domain voice
+  model (LJ Speech), puts piper on PATH for the session, runs
+  `grunt doctor --live`, generates a talking bank from `examples\barks.csv`, and
+  plays a real spoken word. Re-runnable (skips existing downloads); documents how
+  to swap in the male Norman voice.
+- `setup.bat` and `examples/` are now bundled in the Windows release package;
+  the "READ ME FIRST" note points at it for real spoken words. SETUP.md gains a
+  one-click section.
+
+### Fixed
+- The Windows package previously omitted `examples/`, which `setup.bat` and the
+  docs reference — now included.
+
+### Note
+- The script uses verifiable URLs (Piper's GitHub release; LJ Speech on the
+  rhasspy/piper-voices HuggingFace repo). The male Norman voice stays a
+  documented manual swap because its host's exact file URLs aren't
+  machine-verifiable here. Can't run Windows/network in dev, so the script is
+  logic-checked and ships for on-machine validation.
+
 ## [0.15.0] - 2026-06-16
 
 ### Added (grunt doctor — foolproof first-bank setup)

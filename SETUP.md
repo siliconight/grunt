@@ -20,6 +20,22 @@ finds everything no matter where you put it.
 
 Prefer the command line, or on macOS/Linux? Build from source below.
 
+## Windows: one-click talking setup
+
+To go straight from the downloaded package to hearing real spoken words,
+double-click **`setup.bat`** (it's in the package next to `grunt.exe`). It:
+
+1. downloads the Piper speech engine (offline, MIT) into `.\piper\`,
+2. downloads a public-domain voice model (LJ Speech),
+3. runs `grunt doctor --live` to verify the chain,
+4. generates a talking bank from `examples\barks.csv`, and
+5. plays a real spoken word.
+
+Re-running is safe — it skips anything already downloaded. To use the **male
+Norman voice** instead, drop `norman.onnx` + `norman.onnx.json` (from
+brycebeattie.com/files/tts) into the folder and change `MODEL_ID` near the top
+of `setup.bat` to `piper-en_US-norman`.
+
 ## Fastest path from source: hear it now (no setup)
 
 If you've built grunt, you already have everything for a first sound:

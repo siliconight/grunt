@@ -104,9 +104,11 @@ jobs:
           # bundled resources, resolved relative to the exe at runtime
           cp -r data "$pkg/"
           cp -r voices "$pkg/"
+          cp -r examples "$pkg/"
           cp README.md SETUP.md "$pkg/" 2>/dev/null || true
+          cp setup.bat "$pkg/" 2>/dev/null || true
           # a friendly launch note
-          printf 'Double-click grunt_gui.exe to start.\nFirst launch: Windows may show a SmartScreen notice (unsigned app) — click More info > Run anyway.\nNo install needed; everything is in this folder.\n' > "$pkg/READ ME FIRST.txt"
+          printf 'Double-click grunt_gui.exe to start (uses the bundled grunt-noise demo bank).\nFirst launch: Windows may show a SmartScreen notice (unsigned app) -- click More info > Run anyway.\n\nTo hear REAL SPOKEN WORDS: double-click setup.bat once. It downloads the Piper\nspeech engine + a public-domain voice, builds a talking bank, and plays a word.\nThen in the GUI open "advanced" and point the bank at voices\\my_guards.\n\nNo install needed; everything stays in this folder.\n' > "$pkg/READ ME FIRST.txt"
           7z a "$pkg.zip" "$pkg"
           echo "GRUNT_WIN_ZIP=$pkg.zip" >> "$GITHUB_ENV"
 
