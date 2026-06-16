@@ -110,3 +110,11 @@ jobs:
           ./build/grunt synth --text "Open the gate!" --voice voices/heavy_brother \
             --seed 42 --format ogg --out b.ogg
           cmp a.ogg b.ogg || (echo "determinism broken" && exit 1)
+
+      - name: Quickstart (first-run path must produce clips from bundled bank)
+        run: |
+          ./build/grunt quickstart --out qs
+          test -f qs/01_hello.ogg -o -f qs/01_hello.wav \
+            || (echo "quickstart produced no first clip" && exit 1)
+          n=$(ls qs/ | wc -l)
+          test "$n" -ge 5 || (echo "quickstart made only $n clips, expected >=5" && exit 1)

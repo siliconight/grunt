@@ -4,45 +4,46 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.10.0] - 2026-06-16
+
+### Added (frictionless first run)
+- `grunt quickstart`: zero-config first-run command. Renders five demo clips
+  (plain line, two characters, two efforts including a death scream) from the
+  bundled voice bank into `./grunt_quickstart/` — no Piper, no model downloads,
+  no setup. First sound in one command. Deterministic.
+- `grunt --version` / `-V`.
+- Friendlier no-args landing: leads with "new here? run: grunt quickstart".
+- `examples/barks.csv`: sample units CSV so `generate` has something to point at.
+- `SETUP.md`: explicit, copy-paste setup — fastest-path quickstart, build, and a
+  step-by-step generate-path walkthrough (install Piper, exactly which voice
+  files to download and where, generate, verify). Turns the previously-implicit
+  scariest step (Piper + model) into a checklist.
+- CI smoke check: `quickstart` must produce >=5 clips from the bundled bank, so
+  the first-run path can't silently break.
+
+### Why
+- The first-time experience had ~7 steps and three external dependencies before
+  any sound — at odds with grunt's accessibility mission. The zero-config path
+  already worked (bundled bank + synth) but wasn't surfaced; quickstart makes it
+  the obvious first move.
+
 ## [0.9.0] - 2026-06-16
 
 ### Added (male base voice — roster now spans two timbres)
 - Second license-cleared base voice in the registry: `piper-en_US-norman` — a
   US English male voice, trained from scratch on ~15.5h of public-domain
-  LibriVox recordings, by the same creator (Bryce Beattie) as our LJ Speech
-  voice. Public domain, commercial + redistributable.
+  LibriVox recordings, by the same creator (Bryce Beattie) as the LJ Speech
+  voice. Public domain, commercial + redistributable. Provenance is the
+  creator's personal-site attestation rather than an institutional model card —
+  credible (same trusted source) and recorded as such in the registry. Not legal
+  advice; confirm before commercial release. Alternatives noted: John
+  (finetuned from Kristin), Bryce (creator's own voice).
 - Male-coded characters (grunt, deep_big, orc, demon, yelling_man, robot) now
   derive from Norman instead of being pitched-down female; woman_raspy and
   yelling_woman stay on LJ Speech. The eight presets now span two real timbres
   rather than one.
-
-### Note
-- Chosen as the male equivalent of LJ Speech: trained from scratch (cleanest
-  transitive chain) on public-domain data. Provenance is the creator's
-  attestation on his personal site rather than an institutional model card —
-  credible (same trusted source) but recorded as such in the registry. Not
-  legal advice; confirm before commercial release. Alternatives noted in the
-  registry: John (finetuned), Bryce (creator's own voice).
-
-## [0.9.0] - 2026-06-16
-
-### Added (male base voice — characters no longer share one timbre)
-- Registry gains `piper-en_US-norman`: a US English **male** voice, trained from
-  scratch on ~15.5h of public-domain LibriVox recordings, dedicated public
-  domain (same author as the LJ Speech voice). Clean transitive chain; commercial
-  + redistributable.
-- Male-coded characters now derive from Norman instead of the female LJ Speech
-  voice: grunt, deep_big, orc, demon, yelling_man (and robot, which is
-  neutral/heavily processed). woman_raspy and yelling_woman stay on LJ Speech.
-  This fixes the prior state where all eight characters were pitch-shifted
-  versions of one female timbre.
-
-### Note
 - `base_voice` drives the `generate` path (which voice synthesizes a character's
-  bank). Download `norman.onnx` + `.onnx.json` from brycebeattie.com/files/tts
-  and place where `--model` resolves it. As always: not legal advice — confirm
-  the public-domain provenance before commercial release; the gate enforces the
-  registry entry.
+  bank). Download `norman.onnx` + `.onnx.json` from brycebeattie.com/files/tts.
 
 ## [0.8.1] - 2026-06-16
 

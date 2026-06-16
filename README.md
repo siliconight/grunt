@@ -36,6 +36,24 @@ that import into Godot like any other audio asset.
 See `vocalizer_tdd.md` (the design doc) for the full architecture, and
 `ROADMAP.md` for progress and the principle that guides it.
 
+## Try it now
+
+Build (below), then hear grunt in one command — no Piper, no downloads, no setup:
+
+```
+grunt quickstart
+```
+
+This renders demo clips (a couple of characters, a couple of efforts/screams)
+from the bundled voice bank into `./grunt_quickstart/`. Then make your own:
+
+```
+grunt synth --text "take cover" --character grunt --voice voices/heavy_brother --out test.ogg
+```
+
+For the full type-text-to-spoken-banks workflow (the **generate** path, which
+needs Piper + a voice model), see `SETUP.md` — it's copy-paste.
+
 ## Build
 
 Requires a C++20 compiler. OGG/Vorbis output (the default) needs

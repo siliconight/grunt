@@ -216,6 +216,9 @@ real people. Keep this posture explicit in README/docs; nothing to implement.
 Goal: usable by designers; clean handoff to gool.
 
 - [x] Batch CSV → folder of named clips + `bank.json` manifest (§20)
+- [x] Frictionless first run: `grunt quickstart` (zero-config demo from bundled
+      bank), `--version`, friendly landing, `examples/barks.csv`, copy-paste
+      `SETUP.md`, CI smoke check (v0.10.0)
 - [x] OGG/Vorbis output (§20)
 - [x] Deterministic, reproducible renders (§19)
 - [ ] Per-character preset config (voice defaults applied per character)

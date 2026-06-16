@@ -435,15 +435,133 @@ int cmd_generate(int argc, char** argv) {
     return 0;
 }
 
+// grunt version — bump with each tagged release.
+static const char* kGruntVersion = "0.10.0";
+
+// Locate the bundled demo bank relative to either the CWD or the executable's
+// repo layout, so `grunt quickstart` works from a build dir or the repo root.
+std::string find_demo_bank() {
+    const char* candidates[] = {
+        "voices/heavy_brother",
+        "../voices/heavy_brother",
+        "../../voices/heavy_brother",
+    };
+    for (const char* c : candidates) {
+        std::error_code ec;
+        if (std::filesystem::exists(std::string(c) + "/voice.json", ec)) return c;
+    }
+    return "";
+}
+
+// quickstart — zero-config first run: render a few demo clips from the bundled
+// bank so a new user hears grunt in ONE command, before any Piper/model setup.
+int cmd_quickstart(int argc, char** argv) {
+    Args a = parse_args(argc, argv, 2);
+    std::string out_dir = a.get("out", "grunt_quickstart");
+    std::string bank = find_demo_bank();
+    if (bank.empty()) {
+        std::cerr << "couldn't find the bundled demo bank (voices/heavy_brother).\n"
+                     "run this from the grunt repo root, or pass --voice <dir>.\n";
+        return 1;
+    }
+    std::error_code ec;
+    std::filesystem::create_directories(out_dir, ec);
+
+    // WAV by default for the demo so it works even without libvorbis.
+    bool ogg = ogg_supported() && !a.has("wav");
+    AudioFormat fmt = ogg ? AudioFormat::Ogg : AudioFormat::Wav;
+    const char* ext = ogg ? "ogg" : "wav";
+    float q = 0.5f;
+    std::string err;
+
+    Engine engine;
+    if (!engine.load_voice(bank, err)) {
+        std::cerr << "demo bank failed to load: " << err << "\n"; return 1;
+    }
+
+    struct Demo { const char* name; const char* text; const char* character; const char* effort; };
+    Demo demos[] = {
+        {"01_hello",        "hello there",   nullptr,        nullptr},
+        {"02_grunt",        "who goes there", "grunt",        nullptr},
+        {"03_robot",        "scanning area",  "robot",        nullptr},
+        {"04_guard_death",  nullptr,          "yelling_man",  "pain_death"},
+        {"05_orc_roar",     nullptr,          "orc",          "yell"},
+    };
+
+    std::cout << "grunt quickstart — rendering demo clips from the bundled bank\n"
+              << "(no Piper or downloads needed; this is the zero-config path)\n\n";
+
+    int made = 0;
+    for (const auto& d : demos) {
+        std::string out = out_dir + "/" + d.name + "." + ext;
+        SynthResult res;
+        Engine::Options opts;
+        std::string fx = "clean_ps1";
+        Emotion emo = Emotion::Neutral;
+
+        // apply character preset if named
+        if (d.character) {
+            CharacterLibrary lib;
+            if (lib.load("data/characters.json", err)) {
+                if (const CharacterPreset* cp = lib.find(d.character)) {
+                    fx = cp->fx_preset;
+                    emo = emotion_from_string(cp->emotion_bias);
+                    opts.extra_pitch_st = cp->pitch_offset_st;
+                    opts.extra_gain_db  = cp->gain_db;
+                    opts.formant_shift  = cp->formant_shift;
+                    opts.sub_layer      = cp->sub_layer;
+                    opts.rasp           = cp->rasp ? 0.6 : 0.0;
+                }
+            }
+        }
+
+        if (d.effort) {
+            EffortLibrary el;
+            if (el.load("data/efforts.json", err)) {
+                if (const Effort* ef = el.find(d.effort)) {
+                    PhonemeSeq seq = effort_to_phonemes(*ef);
+                    res = engine.synth_vocalization(seq, ef->intensity, fx, 0xC0FFEE, opts);
+                }
+            }
+        } else {
+            res = engine.synth(d.text, emo, fx, 0xC0FFEE, opts);
+        }
+
+        if (res.ok) {
+            AudioFormat use = fmt;
+            if (!write_audio(out, res.audio, use, q, err)) {
+                std::cerr << "  ! " << d.name << ": " << err << "\n";
+            } else {
+                std::cout << "  ✓ " << out
+                          << (d.character ? std::string("  [") + d.character + "]" : "")
+                          << (d.effort ? std::string(" effort:") + d.effort : "") << "\n";
+                made++;
+            }
+        }
+    }
+
+    std::cout << "\n" << made << " clips in ./" << out_dir << "/  — play them!\n\n"
+              << "next steps:\n"
+              << "  • one line, your text:   grunt synth --text \"take cover\" --character grunt --voice "
+              << bank << " --out test." << ext << "\n"
+              << "  • an effort/scream:      grunt synth --effort pain_death --character yelling_man --voice "
+              << bank << " --out hit." << ext << "\n"
+              << "  • generate your own bank from a TTS voice (needs Piper): see SETUP.md\n";
+    return 0;
+}
+
 void usage() {
     std::cout <<
-    "grunt — PS1-style game vocalizer\n\n"
+    "grunt " << kGruntVersion << " — type text, get game-ready voice clips\n\n"
+    "new here?  run:  grunt quickstart      (hear it in one command, no setup)\n\n"
     "commands:\n"
-    "  synth     render one line to a clip (OGG/Vorbis default)\n"
-    "  batch     bake a folder of named clips + bank.json from a CSV\n"
-    "  generate  build a bank's units from a CC0/permissive TTS generator\n"
-    "  verify    run the provenance ship gate on a voice bank\n"
-    "  phonemes  convert text to ARPAbet phonemes (--dict for CMUdict)\n\n"
+    "  quickstart  render demo clips from the bundled bank (zero config)\n"
+    "  synth       render one line to a clip (OGG/Vorbis default)\n"
+    "  batch       bake a folder of named clips + bank.json from a CSV\n"
+    "  generate    build a bank's units from a CC0/permissive TTS generator\n"
+    "  verify      run the provenance ship gate on a voice bank\n"
+    "  phonemes    convert text to ARPAbet phonemes (--dict for CMUdict)\n\n"
+    "  --version   print version\n"
     "run a command with no args for its usage.\n";
 }
 
@@ -452,6 +570,8 @@ void usage() {
 int main(int argc, char** argv) {
     if (argc < 2) { usage(); return 2; }
     std::string cmd = argv[1];
+    if (cmd == "--version" || cmd == "-V") { std::cout << "grunt " << kGruntVersion << "\n"; return 0; }
+    if (cmd == "quickstart") return cmd_quickstart(argc, argv);
     if (cmd == "synth")    return cmd_synth(argc, argv);
     if (cmd == "batch")    return cmd_batch(argc, argv);
     if (cmd == "generate") return cmd_generate(argc, argv);
