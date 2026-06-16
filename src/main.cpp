@@ -232,15 +232,49 @@ int cmd_batch(int argc, char** argv) {
 
 int cmd_phonemes(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
-    if (!a.has("text")) { std::cerr << "usage: grunt phonemes --text \"...\"\n"; return 2; }
-    // Phase 0 stub: show the grunt-mode unit plan instead of true phonemes.
-    TextNormalizer norm; SyllablePlanner syl;
+    if (!a.has("text")) {
+        std::cerr << "usage: grunt phonemes --text \"...\" [--dict cmudict.dict]\n";
+        return 2;
+    }
+    TextNormalizer norm;
+    PhonemeMapper mapper;
+    if (a.has("dict")) {
+        std::string err;
+        if (!mapper.load_dictionary(a.get("dict"), err)) {
+            std::cerr << "dictionary load failed: " << err << "\n"
+                      << "(continuing with rule-based fallback for all words)\n";
+        } else {
+            std::cerr << "loaded " << mapper.dictionary_size() << " dictionary entries\n";
+        }
+    }
+
     NormalizedText nt = norm.normalize(a.get("text"));
-    UnitPlan up = syl.plan(nt);
-    std::cout << "emotion=" << emotion_to_string(nt.emotion_hint)
-              << " punct='" << nt.terminal_punct << "'\nunits:";
-    for (auto& u : up.units) std::cout << " " << u.key << (u.is_emphasis ? "*" : "");
-    std::cout << "\n(note: Phase 0 grunt-mode units; true phoneme view lands in Phase 1)\n";
+    PhonemeSeq seq = mapper.map(nt);
+
+    std::cout << "emotion=" << emotion_to_string(seq.emotion)
+              << " punct='" << seq.terminal_punct << "'\n";
+
+    // ARPAbet view: words separated by |
+    std::vector<std::string> unknown;
+    bool first = true;
+    for (const auto& w : seq.words) {
+        std::cout << (first ? "" : " | ");
+        first = false;
+        for (size_t i = 0; i < w.phonemes.size(); ++i)
+            std::cout << (i ? " " : "") << w.phonemes[i];
+        if (w.is_emphasis) std::cout << " (*)";
+        if (w.source == PhonemeSource::RuleFallback) unknown.push_back(w.word);
+    }
+    std::cout << "\n";
+
+    if (!unknown.empty()) {
+        std::cout << "unknown words (rule fallback): ";
+        for (size_t i = 0; i < unknown.size(); ++i)
+            std::cout << (i ? ", " : "") << unknown[i];
+        std::cout << "\n";
+    }
+    if (!a.has("dict"))
+        std::cout << "(no --dict given; all words used the rule-based fallback)\n";
     return 0;
 }
 

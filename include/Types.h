@@ -27,6 +27,24 @@ struct NormalizedText {
     std::vector<std::string> emphasis_words;
 };
 
+// ---- Stage 2 output: PhonemeSeq (TDD §6.2, Phase 1) ------------------------
+// A word resolved to ARPAbet phonemes, plus how it was resolved (for the
+// unknown-word coverage report).
+enum class PhonemeSource { Dictionary, RuleFallback, Passthrough };
+
+struct WordPhonemes {
+    std::string word;                     // the source token
+    std::vector<std::string> phonemes;    // ARPAbet, e.g. {"G","EY","T"}
+    PhonemeSource source = PhonemeSource::Dictionary;
+    bool is_emphasis = false;
+};
+
+struct PhonemeSeq {
+    std::vector<WordPhonemes> words;
+    Emotion emotion = Emotion::Neutral;
+    std::string terminal_punct;
+};
+
 // ---- Stage 2/3 output: UnitPlan (TDD §6.2/6.3) -----------------------------
 // In Phase 0 (grunt mode) a requested unit is just a syllable-ish token plus a
 // fallback chain. Later phases enrich this with phonemes/diphones.

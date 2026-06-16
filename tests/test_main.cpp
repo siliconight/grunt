@@ -9,6 +9,7 @@
 #include <cmath>
 #include <filesystem>
 #include <string>
+#include <fstream>
 
 using namespace voc;
 
@@ -127,6 +128,37 @@ void test_format_dispatch() {
           "format: write_audio wav ok");
 }
 
+void test_phoneme_mapper() {
+    PhonemeMapper m;
+    // rule fallback (no dictionary loaded)
+    auto gate = m.map_word("gate");
+    CHECK(!gate.phonemes.empty(), "phoneme: rule fallback produces phonemes");
+    CHECK(gate.source == PhonemeSource::RuleFallback, "phoneme: marked as fallback");
+
+    // digraph handling: "ship" -> SH ...
+    auto ship = m.map_word("ship");
+    CHECK(!ship.phonemes.empty() && ship.phonemes[0] == "SH", "phoneme: sh digraph");
+
+    // 'ch' -> CH
+    auto chat = m.map_word("chat");
+    CHECK(!chat.phonemes.empty() && chat.phonemes[0] == "CH", "phoneme: ch digraph");
+
+    // never empty, even on a weird token
+    auto weird = m.map_word("zzz");
+    CHECK(!weird.phonemes.empty(), "phoneme: never emits empty");
+
+    // dictionary lookup overrides fallback
+    std::string err;
+    std::string dictpath = tmp_path("_grunt_dict.txt");
+    { std::ofstream of(dictpath); of << "GATE  G EY1 T\nOPEN  OW1 P AH0 N\n"; }
+    CHECK(m.load_dictionary(dictpath, err), "phoneme: dictionary loads");
+    CHECK(m.dictionary_size() == 2, "phoneme: 2 entries loaded");
+    auto g2 = m.map_word("gate");
+    CHECK(g2.source == PhonemeSource::Dictionary, "phoneme: dict hit overrides fallback");
+    CHECK(g2.phonemes.size() == 3 && g2.phonemes[0] == "G" && g2.phonemes[1] == "EY",
+          "phoneme: dict phonemes correct, stress digits stripped");
+}
+
 int main() {
     test_normalizer();
     test_syllable();
@@ -135,6 +167,7 @@ int main() {
     test_wav_roundtrip();
     test_read_missing_file();
     test_format_dispatch();
+    test_phoneme_mapper();
     test_renderer_clipping();
     test_ship_gate_logic();
     std::cout << (failures == 0 ? "\nALL TESTS PASSED\n" : "\nTESTS FAILED\n");

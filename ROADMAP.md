@@ -29,14 +29,14 @@ Current version: **v0.2.0**
 
 ---
 
-## Phase 1 — Phoneme Debug Build  (TDD §18 Phase 1)  — [ ] NEXT
+## Phase 1 — Phoneme Debug Build  (TDD §18 Phase 1)  — [~] IN PROGRESS
 
 Goal: convert text into real phoneme sequences; make `phonemes` a true view.
 
-- [ ] CMUdict-derived dictionary, shipped as a compact lookup (§6.2)
-- [ ] Rule-based grapheme→phoneme fallback for unknown words (§6.2)
-- [ ] Unknown-word report (which words hit the fallback) (§6.2, §14)
-- [ ] `phonemes` command emits real ARPAbet (replace Phase 0 stub) (§14)
+- [x] CMUdict-derived dictionary, shipped as a compact lookup (§6.2)
+- [x] Rule-based grapheme→phoneme fallback for unknown words (§6.2)
+- [x] Unknown-word report (which words hit the fallback) (§6.2, §14)
+- [x] `phonemes` command emits real ARPAbet (replace Phase 0 stub) (§14)
 - [ ] Mode C — Direct Phoneme Mode (`--mode phoneme`) for debug (§12)
 - [ ] eSpeak NG as optional prototype-only phoneme front end, build-side,
       gated out of shipped banks (§6.2, §17 risk 4)

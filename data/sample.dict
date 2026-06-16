@@ -1,0 +1,12 @@
+;; tiny CMUdict-format sample — real grunt builds use the full CMUdict
+OPEN  OW1 P AH0 N
+THE  DH AH0
+GATE  G EY1 T
+GET  G EH1 T
+OUT  AW1 T
+OF  AH1 V
+HERE  HH IY1 R
+HELP  HH EH1 L P
+NO  N OW1
+WAY  W EY1
+DANGEROUS  D EY1 N JH ER0 AH0 S

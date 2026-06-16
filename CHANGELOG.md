@@ -4,6 +4,20 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.3.0] - 2026-06-16
+
+### Added (TDD Phase 1 — Phoneme Debug Build)
+- `PhonemeMapper`: converts words to ARPAbet phonemes via a CMUdict-style
+  dictionary lookup with a rule-based grapheme→phoneme fallback for
+  out-of-dictionary words (digraphs, soft c/g, silent final e, etc.).
+- `phonemes` command now emits real ARPAbet (replacing the Phase 0 stub),
+  with `--dict <file>` to load a CMUdict-format dictionary and an unknown-word
+  report listing which words used the rule fallback.
+- `PhonemeSeq` / `WordPhonemes` types carry per-word phonemes + resolution
+  source (dictionary vs. rule fallback).
+- `data/sample.dict`: tiny CMUdict-format sample for trying the dictionary path.
+- Tests for dictionary load, fallback, digraph handling, and dict-overrides-fallback.
+
 ## [0.2.4] - 2026-06-16
 
 ### Fixed

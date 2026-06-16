@@ -4,6 +4,7 @@
 #include <string>
 #include <vector>
 #include <random>
+#include <unordered_map>
 
 namespace voc {
 
@@ -11,6 +12,25 @@ namespace voc {
 class TextNormalizer {
 public:
     NormalizedText normalize(const std::string& text) const;
+};
+
+// §6.2 (Phase 1) — words -> ARPAbet phonemes via dictionary + rule fallback
+class PhonemeMapper {
+public:
+    // Load a CMUdict-style dictionary file (WORD  P1 P2 ...). Optional —
+    // without it, every word uses the rule-based G2P fallback.
+    bool load_dictionary(const std::string& path, std::string& err);
+    size_t dictionary_size() const { return dict_.size(); }
+
+    PhonemeSeq map(const NormalizedText& nt) const;
+
+    // expose single-word resolution for the debug command / tests
+    WordPhonemes map_word(const std::string& word) const;
+
+private:
+    std::unordered_map<std::string, std::vector<std::string>> dict_;
+    // rule-based grapheme->phoneme fallback for out-of-dictionary words
+    std::vector<std::string> g2p_fallback(const std::string& word) const;
 };
 
 // §6.3 (grunt-mode planner: tokens -> playable syllable/grunt keys)
