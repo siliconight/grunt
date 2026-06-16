@@ -332,6 +332,41 @@ void test_psola() {
     CHECK(!voc::dsp::psola(std::vector<float>{}, sr, 2.0, 1.0, e_out), "psola: empty -> false");
 }
 
+void test_phase2_planner() {
+    TextNormalizer norm;
+    SyllablePlanner syl;
+    PhonemeMapper mapper;
+    // load the sample dict so "gate" -> G EY T deterministically
+    std::string err;
+    bool have_dict = mapper.load_dictionary("data/sample.dict", err);
+
+    NormalizedText nt = norm.normalize("gate");
+    UnitPlan up = syl.plan_phonemic(nt, mapper);
+    CHECK(!up.units.empty(), "phase2: plan produces units");
+    // every unit must carry a fallback chain ending in grunt ("")
+    bool all_have_grunt_fallback = true;
+    for (const auto& u : up.units)
+        if (u.fallback.empty() || u.fallback.back() != "") all_have_grunt_fallback = false;
+    CHECK(all_have_grunt_fallback, "phase2: every unit falls back to grunt");
+
+    if (have_dict) {
+        // "gate" = G EY T -> single syllable, key "G EY T", phoneme fallbacks
+        CHECK(up.units.size() == 1, "phase2: 'gate' is one syllable");
+        CHECK(up.units[0].key == "G EY T", "phase2: syllable key is joined phonemes");
+        // fallback chain contains the constituent phonemes
+        bool has_ey = false;
+        for (const auto& f : up.units[0].fallback) if (f == "EY") has_ey = true;
+        CHECK(has_ey, "phase2: fallback chain includes constituent phonemes");
+    }
+
+    // multi-syllable word splits at vowel nuclei: "open" = OW P AH N -> 2 syllables
+    if (have_dict) {
+        NormalizedText nt2 = norm.normalize("open");
+        UnitPlan up2 = syl.plan_phonemic(nt2, mapper);
+        CHECK(up2.units.size() == 2, "phase2: 'open' splits into two syllables");
+    }
+}
+
 int main() {
     test_normalizer();
     test_syllable();
@@ -346,6 +381,7 @@ int main() {
     test_vocalization();
     test_dsp();
     test_psola();
+    test_phase2_planner();
     test_renderer_clipping();
     test_ship_gate_logic();
     std::cout << (failures == 0 ? "\nALL TESTS PASSED\n" : "\nTESTS FAILED\n");

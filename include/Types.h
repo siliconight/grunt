@@ -45,11 +45,18 @@ struct PhonemeSeq {
     std::string terminal_punct;
 };
 
+// Unit kinds in a voice bank (declared early — RequestedUnit references it).
+enum class UnitType { Phoneme, Diphone, Syllable, Word, Grunt, Effort };
+
 // ---- Stage 2/3 output: UnitPlan (TDD §6.2/6.3) -----------------------------
-// In Phase 0 (grunt mode) a requested unit is just a syllable-ish token plus a
-// fallback chain. Later phases enrich this with phonemes/diphones.
+// A requested unit carries a primary key plus an ordered fallback chain:
+// syllable -> its phonemes -> grunt. The selector walks the chain until the
+// bank has a matching unit. `fallback` lists alternative keys in priority order
+// (the primary `key` is tried first, then these).
 struct RequestedUnit {
-    std::string key;                   // e.g. "geh", "tah", or a word like "no"
+    std::string key;                   // primary: syllable key (e.g. "G EY T" joined) or word
+    UnitType    preferred = UnitType::Syllable;
+    std::vector<std::string> fallback; // ordered: phoneme keys, then "" = any grunt
     bool is_emphasis = false;
 };
 
@@ -62,6 +69,7 @@ struct UnitPlan {
 // ---- Stage 4 output: ProsodyPlan (TDD §6.4) --------------------------------
 struct ProsodyUnit {
     std::string key;
+    std::vector<std::string> fallback;   // ordered alternative keys ("" = grunt)
     int    duration_ms      = 120;
     double pitch_offset_st  = 0.0;     // semitones
     double gain_db          = 0.0;
@@ -78,8 +86,6 @@ struct ProsodyPlan {
 };
 
 // ---- Voice bank: AudioUnit metadata (TDD §9) -------------------------------
-enum class UnitType { Phoneme, Diphone, Syllable, Word, Grunt, Effort };
-
 struct Provenance {
     std::string source = "original_recording"; // original_recording|contracted_vo|sample_pack|synth_placeholder
     std::string recorded_by;

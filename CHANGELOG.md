@@ -4,6 +4,28 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.11.0] - 2026-06-16
+
+### Added (Phase 2 — phoneme-backed syllable rendering)
+- `SyllablePlanner::plan_phonemic`: syllabifies each word from its ARPAbet
+  phonemes (split at vowel nuclei) instead of the Phase 0 spelling splitter.
+  The Engine now uses this path, loading a phoneme dictionary if present
+  (`data/cmudict.dict` / `data/sample.dict`), else rule-based G2P.
+- Scored fallback chain per unit: syllable key → constituent phonemes → grunt.
+  `UnitSelector` walks the chain and picks the first matching tier, with a
+  tier-cost so closer-to-intended units win. `UnitDatabase::match_key` does
+  case-insensitive exact-key matching (empty key = the grunt tier).
+- `coverage` command: runs a script/line through the planner against a bank and
+  reports syllable-level / phoneme-level / grunt-fallback rates plus the top
+  missing syllable units — so you can see where a bank is thin before shipping.
+
+### Notes
+- Determinism preserved; all existing paths (synth, characters, efforts,
+  quickstart) still render. Banks key syllable units by ARPAbet string (e.g.
+  "G EY T"); a generate-side path that emits real syllable units is the
+  remaining Phase 2 work (today most banks are grunt-only, which `coverage`
+  now makes visible).
+
 ## [0.10.0] - 2026-06-16
 
 ### Added (frictionless first run)

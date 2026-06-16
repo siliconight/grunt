@@ -18,6 +18,8 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <algorithm>
+#include <map>
 #include <map>
 #include <cstdint>
 #include <filesystem>
@@ -550,6 +552,70 @@ int cmd_quickstart(int argc, char** argv) {
     return 0;
 }
 
+// coverage — report how well a bank covers a script. Runs lines through the
+// phoneme-backed planner and tallies, per requested unit, whether the bank has
+// a syllable match, only phoneme matches, or must fall to a grunt. Helps a user
+// see where a bank is thin before shipping.
+int cmd_coverage(int argc, char** argv) {
+    Args a = parse_args(argc, argv, 2);
+    if (!a.has("voice") || (!a.has("script") && !a.has("text"))) {
+        std::cerr << "usage: grunt coverage --voice <dir> (--script lines.txt | --text \"...\")\n"
+                     "  reports syllable/phoneme/grunt fallback rates + missing units.\n";
+        return 2;
+    }
+    std::string err;
+    UnitDatabase db;
+    if (!db.load(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
+
+    // gather lines
+    std::vector<std::string> lines;
+    if (a.has("text")) lines.push_back(a.get("text"));
+    if (a.has("script")) {
+        std::ifstream f(a.get("script"));
+        if (!f) { std::cerr << "cannot open script: " << a.get("script") << "\n"; return 1; }
+        std::string ln;
+        while (std::getline(f, ln)) if (!ln.empty()) lines.push_back(ln);
+    }
+
+    TextNormalizer norm;
+    SyllablePlanner syl;
+    PhonemeMapper mapper;
+    { std::string d; for (const char* p : {"data/cmudict.dict","data/sample.dict"}) if (mapper.load_dictionary(p,d)) break; }
+
+    int total = 0, syll_hit = 0, phon_hit = 0, grunt_only = 0;
+    std::map<std::string,int> missing;   // syllable keys with no syllable unit
+
+    for (const auto& line : lines) {
+        NormalizedText nt = norm.normalize(line);
+        UnitPlan up = syl.plan_phonemic(nt, mapper);
+        for (const auto& ru : up.units) {
+            total++;
+            if (!db.match_key(ru.key).empty()) { syll_hit++; continue; }
+            // any constituent phoneme present?
+            bool phon = false;
+            for (const auto& f : ru.fallback) if (!f.empty() && !db.match_key(f).empty()) { phon = true; break; }
+            if (phon) phon_hit++;
+            else { grunt_only++; missing[ru.key]++; }
+        }
+    }
+
+    if (total == 0) { std::cout << "no units requested\n"; return 0; }
+    auto pct = [&](int n){ return 100.0 * n / total; };
+    std::cout << "coverage for bank '" << db.voice_id() << "' over "
+              << lines.size() << " line(s), " << total << " units:\n"
+              << "  syllable-level match : " << syll_hit  << "  (" << (int)pct(syll_hit)  << "%)\n"
+              << "  phoneme-level only   : " << phon_hit  << "  (" << (int)pct(phon_hit)  << "%)\n"
+              << "  grunt fallback       : " << grunt_only<< "  (" << (int)pct(grunt_only)<< "%)\n";
+    if (!missing.empty()) {
+        std::cout << "top missing syllable units (would improve coverage if added):\n";
+        std::vector<std::pair<std::string,int>> m(missing.begin(), missing.end());
+        std::sort(m.begin(), m.end(), [](auto&x,auto&y){return x.second>y.second;});
+        for (size_t i = 0; i < m.size() && i < 12; ++i)
+            std::cout << "  \"" << m[i].first << "\"  x" << m[i].second << "\n";
+    }
+    return 0;
+}
+
 void usage() {
     std::cout <<
     "grunt " << kGruntVersion << " — type text, get game-ready voice clips\n\n"
@@ -560,6 +626,7 @@ void usage() {
     "  batch       bake a folder of named clips + bank.json from a CSV\n"
     "  generate    build a bank's units from a CC0/permissive TTS generator\n"
     "  verify      run the provenance ship gate on a voice bank\n"
+    "  coverage    report how well a bank covers a script (syllable/phoneme/grunt)\n"
     "  phonemes    convert text to ARPAbet phonemes (--dict for CMUdict)\n\n"
     "  --version   print version\n"
     "run a command with no args for its usage.\n";
@@ -576,6 +643,7 @@ int main(int argc, char** argv) {
     if (cmd == "batch")    return cmd_batch(argc, argv);
     if (cmd == "generate") return cmd_generate(argc, argv);
     if (cmd == "verify")   return cmd_verify(argc, argv);
+    if (cmd == "coverage") return cmd_coverage(argc, argv);
     if (cmd == "phonemes") return cmd_phonemes(argc, argv);
     if (cmd == "-h" || cmd == "--help" || cmd == "help") { usage(); return 0; }
     std::cerr << "unknown command: " << cmd << "\n";

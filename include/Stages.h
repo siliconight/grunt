@@ -36,7 +36,16 @@ private:
 // §6.3 (grunt-mode planner: tokens -> playable syllable/grunt keys)
 class SyllablePlanner {
 public:
+    // Phase 0 grunt-mode: spelling-based splitter (kept as fallback when no
+    // phoneme mapper is available).
     UnitPlan plan(const NormalizedText& nt) const;
+
+    // Phase 2: phoneme-backed planning. Syllabifies each word from its ARPAbet
+    // phonemes and builds a scored fallback chain per unit:
+    // syllable key -> constituent phoneme keys -> grunt. Supersedes the Phase 0
+    // splitter when a mapper is provided.
+    UnitPlan plan_phonemic(const NormalizedText& nt, const PhonemeMapper& mapper) const;
+
 private:
     // crude open-syllable splitter for grunt mode; good enough to drive rhythm
     std::vector<std::string> syllabify(const std::string& word) const;
@@ -61,6 +70,9 @@ public:
     // candidates whose key matches, plus all grunts as universal fallback
     std::vector<const AudioUnit*> candidates(const std::string& key,
                                              Emotion emotion) const;
+    // exact key matches only (no grunt auto-append); used to walk a scored
+    // fallback chain explicitly. Empty key returns all grunts.
+    std::vector<const AudioUnit*> match_key(const std::string& key) const;
     const std::vector<AudioUnit>& all() const { return units_; }
 
 private:

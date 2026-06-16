@@ -69,6 +69,19 @@ bool UnitDatabase::load(const std::string& voice_dir, std::string& err) {
     return true;
 }
 
+std::vector<const AudioUnit*> UnitDatabase::match_key(const std::string& key) const {
+    std::vector<const AudioUnit*> out;
+    if (key.empty()) {                       // empty = the grunt tier
+        for (const auto& u : units_) if (u.type == UnitType::Grunt) out.push_back(&u);
+        return out;
+    }
+    // case-insensitive key compare so "G EY T" matches bank key "g ey t"
+    auto lower = [](std::string s){ for (auto& c : s) c = (char)std::tolower((unsigned char)c); return s; };
+    std::string k = lower(key);
+    for (const auto& u : units_) if (lower(u.key) == k) out.push_back(&u);
+    return out;
+}
+
 std::vector<const AudioUnit*> UnitDatabase::candidates(const std::string& key,
                                                        Emotion emotion) const {
     std::vector<const AudioUnit*> exact, grunts;

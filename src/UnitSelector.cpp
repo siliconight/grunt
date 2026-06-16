@@ -14,19 +14,32 @@ std::vector<SelectedUnit> UnitSelector::select(const ProsodyPlan& pp,
     std::unordered_map<std::string, int> recent;
 
     for (const auto& pu : pp.units) {
-        auto cands = db.candidates(pu.key, pp.emotion);
-        if (cands.empty()) continue; // nothing to play for this unit
+        // Build the ordered tier list: primary key first, then fallbacks
+        // (phonemes, then "" = grunt). Walk until a tier has matches.
+        std::vector<std::string> tiers;
+        tiers.push_back(pu.key);
+        for (const auto& f : pu.fallback) tiers.push_back(f);
+
+        std::vector<const AudioUnit*> cands;
+        int tier_index = 0;
+        for (size_t t = 0; t < tiers.size(); ++t) {
+            cands = db.match_key(tiers[t]);
+            if (!cands.empty()) { tier_index = (int)t; break; }
+        }
+        if (cands.empty()) {
+            // last resort: any grunt (covers banks lacking the requested keys)
+            cands = db.match_key("");
+            tier_index = (int)tiers.size();
+        }
+        if (cands.empty()) continue; // bank has no grunts either; skip
 
         const AudioUnit* best = nullptr;
         double best_cost = std::numeric_limits<double>::max();
 
         for (const AudioUnit* c : cands) {
-            double cost = 0.0;
-
-            // target cost: exact key match is cheapest; grunt fallback costs more
-            if (c->key == pu.key)              cost += 0.0;
-            else if (c->type == UnitType::Grunt) cost += 2.0;
-            else                                 cost += 1.0;
+            // tier cost: earlier tier (closer to the intended syllable) is cheaper
+            double cost = 0.5 * tier_index;
+            if (c->type == UnitType::Grunt) cost += 0.5; // mild grunt bias
 
             // emotion mismatch penalty
             if (c->emotion != pp.emotion)      cost += 0.5;

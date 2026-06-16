@@ -35,6 +35,7 @@ ProsodyPlan ProsodyPlanner::plan(const UnitPlan& up) const {
         const RequestedUnit& ru = up.units[i];
         ProsodyUnit u;
         u.key = ru.key;
+        u.fallback = ru.fallback;
         u.stress = ru.is_emphasis;
 
         // declination: linear pitch drift across the whole line

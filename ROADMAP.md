@@ -78,14 +78,18 @@ Goal: convert text into real phoneme sequences; make `phonemes` a true view.
 
 ---
 
-## Phase 2 — Syllable-Based Renderer  (TDD §18 Phase 2)  — [ ]
+## Phase 2 — Syllable-Based Renderer  (TDD §18 Phase 2)  — [~] PARTIAL
 
 Goal: short lines sound game-ready from real syllable assets.
 
-- [ ] Syllable database keyed by real syllable units (not grunt-mode guess)
-- [ ] Syllable planner backed by phonemes (supersedes Phase 0 splitter)
-- [ ] Fallback chain syllable → phoneme → grunt, scored (§6.3, §6.5)
-- [ ] `coverage` command: % coverage, missing units, fallback rate (§14)
+- [x] Syllable planner backed by phonemes (`plan_phonemic`) — supersedes Phase 0
+      splitter in the Engine; syllabifies ARPAbet at vowel nuclei (§6.3)
+- [x] Fallback chain syllable → phoneme → grunt, scored by the selector with
+      tier cost (§6.3, §6.5)
+- [x] `coverage` command: syllable/phoneme/grunt fallback rates + top missing
+      units over a script (§14)
+- [ ] Syllable database keyed by real syllable units (banks key by ARPAbet
+      syllable string now; needs a generate-side path that emits those units)
 - [ ] Coverage regression check in CI over a fixed script corpus (§16)
 - [ ] Mode B — Semi-Readable Speech (`--mode speech`) (§12)
 - [ ] `analyze` command / BankAnalyzer: auto-fill pitch_center_hz + energy (§9, §14)

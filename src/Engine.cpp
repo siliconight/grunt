@@ -26,13 +26,24 @@ SynthResult Engine::synth(const std::string& text,
 
     TextNormalizer norm;
     SyllablePlanner syl;
+    PhonemeMapper mapper;
     ProsodyPlanner pros;
     UnitSelector sel(seed);
     AudioRenderer rend;
     RetroFxChain fx;
 
+    // Load a phoneme dictionary if one is available (improves syllabification);
+    // without it the mapper uses rule-based G2P, so this is best-effort.
+    {
+        std::string derr;
+        for (const char* p : {"data/cmudict.dict", "data/sample.dict"}) {
+            if (mapper.load_dictionary(p, derr)) break;
+        }
+    }
+
     NormalizedText nt = norm.normalize(text);
-    UnitPlan up = syl.plan(nt);
+    // Phase 2: phoneme-backed planning supersedes the Phase 0 spelling splitter.
+    UnitPlan up = syl.plan_phonemic(nt, mapper);
     if (emotion != Emotion::Neutral) up.emotion = emotion; // explicit override
     ProsodyPlan pp = pros.plan(up);
 
@@ -83,6 +94,8 @@ SynthResult Engine::synth_vocalization(const PhonemeSeq& seq,
             RequestedUnit ru;
             ru.key = ph;
             for (auto& ch : ru.key) ch = (char)std::tolower((unsigned char)ch);
+            ru.preferred = UnitType::Phoneme;
+            ru.fallback = {""};   // grunt fallback if no phoneme/effort unit
             ru.is_emphasis = w.is_emphasis;
             up.units.push_back(ru);
         }
