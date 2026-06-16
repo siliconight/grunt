@@ -1,11 +1,11 @@
 key,text
 alert,hey
-spotted,over there
-hello,hello there
+spotted,intruder
+hello,hello
 yes,yes
 no,no
 halt,halt
 help,help
-taunt,is that all
-hurt,ow
-death,aaargh
+clear,clear
+reload,reloading
+fallback,fall back

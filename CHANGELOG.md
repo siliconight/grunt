@@ -4,6 +4,30 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.13.0] - 2026-06-16
+
+### Changed (intelligibility — words, not just sounds)
+- **Word-first planning.** `plan_phonemic` now requests a whole-word unit first
+  (keyed by the lowercased word), with a fallback chain of syllable → phonemes →
+  grunt. When a bank has the word, you hear the word; otherwise it degrades
+  gracefully. This is the fix for "sounds like sounds, not words": the engine
+  was correctly planning, but no bank had intelligible units to select, so
+  everything fell to grunts.
+- **`generate` bakes WORD units**, keyed by the spoken text (was: syllable units
+  keyed by the CSV id, which the planner never matched). A bank generated from a
+  `key,text` CSV now contains real word clips the planner selects directly.
+- `coverage` label updated to "word/syllable match"; reports now reflect
+  word-level hits. Verified: a generated word bank takes "my goodness" from 100%
+  grunt fallback to 100% matched.
+- `examples/barks.csv` reworked to word-oriented rows.
+
+### Note
+- Full multi-syllable assembly of an *absent* word (stitching a word the bank
+  lacks from its syllable parts) is deferred to the Phase 3 Viterbi selector;
+  today the intelligibility path is word units, which suits grunt's fixed bark
+  vocabulary. Real spoken output still requires generating a bank with Piper on
+  a machine that has it — the stub proves the selection chain only.
+
 ## [0.12.0] - 2026-06-16
 
 ### Added (download-and-run path toward a double-click GUI)

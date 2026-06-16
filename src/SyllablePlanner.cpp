@@ -120,27 +120,28 @@ UnitPlan SyllablePlanner::plan_phonemic(const NormalizedText& nt,
 
         WordPhonemes wp = mapper.map_word(tok);
         auto sylls = syllabify_phonemes(wp.phonemes);
-        if (sylls.empty()) {
-            // no phonemes -> grunt-only unit
-            RequestedUnit ru; ru.key = tok; ru.preferred = UnitType::Syllable;
-            ru.fallback = {""}; ru.is_emphasis = emph;
-            up.units.push_back(ru);
-            continue;
-        }
+
+        // WORD-FIRST: one request for the whole word. Its fallback chain is the
+        // full syllable/phoneme breakdown so that, when the bank has no word
+        // unit, the selector can still assemble the word from smaller units.
+        // A baked word unit (keyed by the word) wins when present -> crisp,
+        // intelligible speech; otherwise it degrades syllable -> phoneme -> grunt.
+        std::string wkey = tok;
+        for (auto& c : wkey) c = (char)std::tolower((unsigned char)c);
+
+        RequestedUnit word;
+        word.key = wkey;                 // matches a generate-baked word unit
+        word.preferred = UnitType::Word;
+        // build fallback: each syllable key, then each phoneme, then grunt
         for (auto& syl : sylls) {
-            RequestedUnit ru;
-            // syllable key: phonemes joined by space (matches how a bank keys
-            // syllable units), lowercased for case-insensitive bank matching.
-            std::string key;
-            for (size_t i = 0; i < syl.size(); ++i) key += (i ? " " : "") + syl[i];
-            ru.key = key;
-            ru.preferred = UnitType::Syllable;
-            // fallback chain: each constituent phoneme, then a grunt
-            for (const auto& p : syl) ru.fallback.push_back(p);
-            ru.fallback.push_back("");   // grunt
-            ru.is_emphasis = emph;
-            up.units.push_back(ru);
+            std::string sk;
+            for (size_t i = 0; i < syl.size(); ++i) sk += (i ? " " : "") + syl[i];
+            word.fallback.push_back(sk);
         }
+        for (const auto& p : wp.phonemes) word.fallback.push_back(p);
+        word.fallback.push_back("");     // grunt
+        word.is_emphasis = emph;
+        up.units.push_back(word);
     }
     return up;
 }

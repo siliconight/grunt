@@ -350,20 +350,18 @@ void test_phase2_planner() {
     CHECK(all_have_grunt_fallback, "phase2: every unit falls back to grunt");
 
     if (have_dict) {
-        // "gate" = G EY T -> single syllable, key "G EY T", phoneme fallbacks
-        CHECK(up.units.size() == 1, "phase2: 'gate' is one syllable");
-        CHECK(up.units[0].key == "G EY T", "phase2: syllable key is joined phonemes");
-        // fallback chain contains the constituent phonemes
-        bool has_ey = false;
-        for (const auto& f : up.units[0].fallback) if (f == "EY") has_ey = true;
-        CHECK(has_ey, "phase2: fallback chain includes constituent phonemes");
-    }
-
-    // multi-syllable word splits at vowel nuclei: "open" = OW P AH N -> 2 syllables
-    if (have_dict) {
-        NormalizedText nt2 = norm.normalize("open");
-        UnitPlan up2 = syl.plan_phonemic(nt2, mapper);
-        CHECK(up2.units.size() == 2, "phase2: 'open' splits into two syllables");
+        // word-first: "gate" -> primary key is the WORD "gate", fallback chain
+        // carries the syllable + phonemes, ending in grunt.
+        CHECK(up.units.size() == 1, "phase2: 'gate' is one word unit");
+        CHECK(up.units[0].key == "gate", "phase2: primary key is the word");
+        CHECK(up.units[0].preferred == UnitType::Word, "phase2: prefers word unit");
+        bool has_phon = false, has_grunt = false;
+        for (const auto& f : up.units[0].fallback) {
+            if (f == "EY") has_phon = true;
+            if (f == "") has_grunt = true;
+        }
+        CHECK(has_phon, "phase2: fallback includes constituent phonemes");
+        CHECK(has_grunt, "phase2: fallback ends in grunt");
     }
 }
 

@@ -88,6 +88,9 @@ Goal: short lines sound game-ready from real syllable assets.
       tier cost (§6.3, §6.5)
 - [x] `coverage` command: syllable/phoneme/grunt fallback rates + top missing
       units over a script (§14)
+- [x] Word-first planning + `generate` bakes word units keyed by the spoken
+      word — the intelligibility path; a generated bank renders real words, not
+      grunts (v0.13.0)
 - [ ] Syllable database keyed by real syllable units (banks key by ARPAbet
       syllable string now; needs a generate-side path that emits those units)
 - [ ] Coverage regression check in CI over a fixed script corpus (§16)

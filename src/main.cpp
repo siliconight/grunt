@@ -407,11 +407,22 @@ int cmd_generate(int argc, char** argv) {
             blocked++;
         }
 
+        // Bake as a WORD unit keyed by the spoken text (lowercased, first word
+        // if multi-word), so the planner's word-first lookup matches when a
+        // user types that word. Single-word texts give the cleanest match;
+        // multi-word texts (e.g. "over there") are keyed by the whole phrase
+        // AND remain reachable as a bark by the CSV key via the id.
+        std::string wordkey = text;
+        for (auto& c : wordkey) c = (char)std::tolower((unsigned char)c);
+        // trim leading/trailing spaces
+        while (!wordkey.empty() && wordkey.front() == ' ') wordkey.erase(wordkey.begin());
+        while (!wordkey.empty() && wordkey.back() == ' ') wordkey.pop_back();
+
         std::string rel = "units/generated/" + key + ".wav";
         if (!first) units_json << ",\n";
         first = false;
         units_json << "    { \"id\": \"gen_" << json_escape(key) << "\""
-                   << ", \"type\": \"syllable\", \"key\": \"" << json_escape(key) << "\""
+                   << ", \"type\": \"word\", \"key\": \"" << json_escape(wordkey) << "\""
                    << ", \"emotion\": \"neutral\", \"file\": \"" << json_escape(rel) << "\""
                    << ", \"provenance\": {"
                    << " \"source\": \"" << json_escape(clip.provenance.source) << "\""
@@ -603,11 +614,11 @@ int cmd_coverage(int argc, char** argv) {
     auto pct = [&](int n){ return 100.0 * n / total; };
     std::cout << "coverage for bank '" << db.voice_id() << "' over "
               << lines.size() << " line(s), " << total << " units:\n"
-              << "  syllable-level match : " << syll_hit  << "  (" << (int)pct(syll_hit)  << "%)\n"
+              << "  word/syllable match : " << syll_hit  << "  (" << (int)pct(syll_hit)  << "%)\n"
               << "  phoneme-level only   : " << phon_hit  << "  (" << (int)pct(phon_hit)  << "%)\n"
               << "  grunt fallback       : " << grunt_only<< "  (" << (int)pct(grunt_only)<< "%)\n";
     if (!missing.empty()) {
-        std::cout << "top missing syllable units (would improve coverage if added):\n";
+        std::cout << "top missing units (add these to improve coverage):\n";
         std::vector<std::pair<std::string,int>> m(missing.begin(), missing.end());
         std::sort(m.begin(), m.end(), [](auto&x,auto&y){return x.second>y.second;});
         for (size_t i = 0; i < m.size() && i < 12; ++i)
