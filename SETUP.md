@@ -108,24 +108,45 @@ that field to match what you downloaded). That's the whole setup.
 
 ### 3. Generate a bank
 
-There's an example script at `examples/barks.csv` (rows are `key,text`):
+**First, check your setup:**
 
 ```
-grunt generate --units examples/barks.csv --voice voices/my_guard --model piper-en_US-norman
+grunt doctor
 ```
 
-That writes units into `voices/my_guard/` with provenance stamped from the
-model's license. Then render lines from it, optionally through a character:
+It verifies each piece of the generate path — registry, the `piper` binary,
+whether a voice model is downloaded, and that grunt can write a bank — and for
+anything missing it prints the exact fix. When it says **ready**, you're set.
+Add `--live` to also have it generate one test word and run it through the ship
+gate:
 
 ```
-grunt synth --text "over there" --character orc --voice voices/my_guard --out spotted.ogg
-grunt synth --effort pain_death --character yelling_man --voice voices/my_guard --out death.ogg
+grunt doctor --live
 ```
+
+**Then make your first talking bank.** There's an example script at
+`examples/barks.csv` (rows are `key,text`):
+
+```
+grunt generate --units examples/barks.csv --voice voices/my_guards --model piper-en_US-norman
+```
+
+That writes word units into `voices/my_guards/` with provenance stamped from the
+model's license. Render lines from it, through a character:
+
+```
+grunt synth --text "intruder" --character orc --voice voices/my_guards --out spotted.ogg
+grunt synth --effort pain_death --character yelling_man --voice voices/my_guards --out death.ogg
+```
+
+In the GUI, open **advanced** and point the voice-bank folder at
+`voices/my_guards`, then pick a character from the dropdown — now you'll hear
+words, not just grunts (the bundled demo bank is grunt-only by design).
 
 ### 4. Verify before you ship
 
 ```
-grunt verify --voice voices/my_guard
+grunt verify --voice voices/my_guards
 ```
 
 The gate confirms every clip is commercial + redistributable. If it passes, the

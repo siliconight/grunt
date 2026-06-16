@@ -118,3 +118,9 @@ jobs:
             || (echo "quickstart produced no first clip" && exit 1)
           n=$(ls qs/ | wc -l)
           test "$n" -ge 5 || (echo "quickstart made only $n clips, expected >=5" && exit 1)
+
+      - name: Doctor (runs and reports; missing piper/models is expected in CI)
+        run: |
+          ./build/grunt doctor || true   # nonzero exit = checks to fix, fine in CI
+          ./build/grunt doctor | grep -q "voice model registry found" \
+            || (echo "doctor did not find the registry" && exit 1)

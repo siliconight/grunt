@@ -227,6 +227,9 @@ Goal: usable by designers; clean handoff to gool.
 - [x] Frictionless first run: `grunt quickstart` (zero-config demo from bundled
       bank), `--version`, friendly landing, `examples/barks.csv`, copy-paste
       `SETUP.md`, CI smoke check (v0.10.0)
+- [x] `grunt doctor`: checks the generate path (registry, piper, model files,
+      writability) with precise fixes; `--live` does a test generation + gate
+      check. De-risks the first real bank (v0.15.0)
 - [x] OGG/Vorbis output (§20)
 - [x] Deterministic, reproducible renders (§19)
 - [ ] Per-character preset config (voice defaults applied per character)

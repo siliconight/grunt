@@ -627,12 +627,127 @@ int cmd_coverage(int argc, char** argv) {
     return 0;
 }
 
+// doctor — verify the environment for the generate path before you invest time
+// in it. Each check reports OK or a precise fix. The goal: turn "install piper,
+// download a model, hope, get a cryptic error" into a checklist that tells you
+// exactly what's missing. Exit code is the number of failed checks (0 = ready).
+int cmd_doctor(int argc, char** argv) {
+    Args a = parse_args(argc, argv, 2);
+    bool live = a.has("live");   // also attempt a real one-word generation
+    int fails = 0;
+    auto ok   = [](const std::string& m){ std::cout << "  [ok]   " << m << "\n"; };
+    auto bad  = [&](const std::string& m, const std::string& fix){
+        std::cout << "  [MISS] " << m << "\n         fix: " << fix << "\n"; fails++; };
+
+    std::cout << "grunt doctor — checking the generate path\n\n";
+
+    // 1) the registry
+    std::string reg_path = a.get("registry", resource_path("data/voice_models.json"));
+    VoiceModelRegistry reg; std::string err;
+    bool have_reg = reg.load(reg_path, err);
+    if (have_reg) ok("voice model registry found (" + std::to_string(reg.all().size()) + " models): " + reg_path);
+    else bad("voice model registry not found/parseable: " + err,
+             "run grunt from the repo/package root, or pass --registry <path>");
+
+    // 2) piper on PATH
+    std::cout << "checking for the piper binary...\n";
+#if defined(_WIN32)
+    const char* piper_probe = "piper --help >NUL 2>&1";
+#else
+    const char* piper_probe = "piper --help >/dev/null 2>&1";
+#endif
+    bool have_piper = (std::system(piper_probe) == 0);
+    if (have_piper) ok("piper is installed and runnable (on PATH)");
+    else bad("piper binary not found on PATH",
+             "install Piper (offline MIT TTS) and put it on PATH; see SETUP.md step 1. "
+             "You can still use --generator stub for pipeline testing.");
+
+    // 3) at least one registered model's file is present
+    if (have_reg) {
+        int present = 0;
+        for (const auto& m : reg.all()) {
+            if (m.generator != "piper") continue;
+            std::error_code ec;
+            // look next to the registry, in the model dir, and as given
+            bool found = std::filesystem::exists(m.model_file, ec) ||
+                         std::filesystem::exists(resource_path("voices/models/" + m.model_file), ec) ||
+                         std::filesystem::exists(resource_path(m.model_file), ec);
+            if (found) { ok("model file present: " + m.model_file + "  (" + m.id + ")"); present++; }
+            else std::cout << "  [ -- ] model not downloaded: " << m.model_file
+                           << "  (" << m.id << ", " << m.license << ")\n";
+        }
+        if (present == 0)
+            bad("no registered voice-model files are present on disk",
+                "download one (see SETUP.md step 2): e.g. norman.onnx + norman.onnx.json "
+                "from brycebeattie.com/files/tts, placed where grunt can find it "
+                "(next to the binary, or pass --model with a path).");
+    }
+
+    // 4) a writable place to put a bank
+    {
+        std::error_code ec;
+        auto tmp = std::filesystem::temp_directory_path(ec) / "grunt_doctor_probe";
+        std::filesystem::create_directories(tmp, ec);
+        if (!ec) { ok("can create voice-bank directories"); std::filesystem::remove_all(tmp, ec); }
+        else bad("cannot create directories for a voice bank", "check filesystem permissions");
+    }
+
+    // 5) live generation (optional, needs piper + a model)
+    if (live) {
+        std::cout << "\nlive check: generating one test word...\n";
+        if (!have_reg) { bad("cannot run live check without a registry", "see above"); }
+        else {
+            // pick the first piper model whose file is present
+            const VoiceModel* use = nullptr;
+            for (const auto& m : reg.all()) {
+                std::error_code ec;
+                if (m.generator == "piper" &&
+                    (std::filesystem::exists(m.model_file, ec) ||
+                     std::filesystem::exists(resource_path(m.model_file), ec)))
+                    { use = &m; break; }
+            }
+            if (!use || !have_piper)
+                bad("live check skipped (need piper + a present model)",
+                    "complete steps 2–3 above, then re-run: grunt doctor --live");
+            else {
+                Generator* g = make_generator("piper");
+                std::error_code ec;
+                auto dir = (std::filesystem::temp_directory_path(ec) / "grunt_doctor_gen").string();
+                std::filesystem::create_directories(dir, ec);
+                GeneratedClip clip = g->generate("test", "hello", *use, dir);
+                if (clip.ok && clip.provenance.commercial_use && !clip.provenance.synth_tool_derived)
+                    ok("live generation succeeded and passed the ship gate");
+                else if (clip.ok)
+                    bad("generated a clip, but it would NOT pass the ship gate",
+                        "check the model's license flags in the registry");
+                else
+                    bad("live generation failed: " + clip.error,
+                        "verify piper runs and the model file path is correct");
+                delete g;
+                std::filesystem::remove_all(dir, ec);
+            }
+        }
+    }
+
+    std::cout << "\n";
+    if (fails == 0) {
+        std::cout << "ready — the generate path is good to go. Make your first bank:\n"
+                  << "  grunt generate --units examples/barks.csv --voice voices/my_guards --model piper-en_US-norman\n"
+                  << "  grunt synth --text \"intruder\" --character orc --voice voices/my_guards --out test.ogg\n";
+    } else {
+        std::cout << fails << " thing(s) to fix above. Re-run `grunt doctor` after each. "
+                     "You can always use the zero-setup path now: grunt quickstart\n";
+    }
+    return fails;
+}
+
 void usage() {
     std::cout <<
     "grunt " << kGruntVersion << " — type text, get game-ready voice clips\n\n"
     "new here?  run:  grunt quickstart      (hear it in one command, no setup)\n\n"
     "commands:\n"
     "  quickstart  render demo clips from the bundled bank (zero config)\n"
+    "  doctor      check the environment for the generate path (--live to test)\n"
     "  synth       render one line to a clip (OGG/Vorbis default)\n"
     "  batch       bake a folder of named clips + bank.json from a CSV\n"
     "  generate    build a bank's units from a CC0/permissive TTS generator\n"
@@ -651,6 +766,7 @@ int main(int argc, char** argv) {
     std::string cmd = argv[1];
     if (cmd == "--version" || cmd == "-V") { std::cout << "grunt " << kGruntVersion << "\n"; return 0; }
     if (cmd == "quickstart") return cmd_quickstart(argc, argv);
+    if (cmd == "doctor")     return cmd_doctor(argc, argv);
     if (cmd == "synth")    return cmd_synth(argc, argv);
     if (cmd == "batch")    return cmd_batch(argc, argv);
     if (cmd == "generate") return cmd_generate(argc, argv);

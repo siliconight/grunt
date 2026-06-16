@@ -4,6 +4,28 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.15.0] - 2026-06-16
+
+### Added (grunt doctor — foolproof first-bank setup)
+- `grunt doctor`: checks the generate path and, for anything missing, prints the
+  exact fix. Verifies the voice-model registry, whether `piper` is on PATH,
+  whether a registered model file is downloaded, and that grunt can create a
+  bank directory. Exit code = number of failed checks (0 = ready); on success
+  it prints the exact first-bank commands.
+- `grunt doctor --live`: additionally generates one test word and runs it
+  through the ship gate, so you know the whole chain works before investing in a
+  real bank.
+- SETUP.md's generate walkthrough now leads with `doctor`, then a copy-paste
+  "make your first talking bank" sequence (generate → synth through a character
+  → point the GUI at it).
+- CI smoke check: `doctor` runs and finds the registry.
+
+### Why
+- The generate path has the most moving parts (external Piper binary, a
+  downloaded model, file paths, the gate) and the least verification, since it
+  can't run in CI/dev. `doctor` turns an opaque first attempt into a checklist,
+  making the one run that actually produces talking output likely to succeed.
+
 ## [0.14.0] - 2026-06-16
 
 ### Changed (GUI: character dropdown + export fix)
