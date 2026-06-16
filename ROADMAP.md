@@ -91,8 +91,11 @@ Goal: short lines sound game-ready from real syllable assets.
 - [x] Word-first planning + `generate` bakes word units keyed by the spoken
       word — the intelligibility path; a generated bank renders real words, not
       grunts (v0.13.0)
-- [ ] Syllable database keyed by real syllable units (banks key by ARPAbet
-      syllable string now; needs a generate-side path that emits those units)
+- [x] Syllable units via `generate --unit-type syllable` — bakes one clip per
+      ARPAbet-keyed syllable (e.g. "G EY T"), so absent words assemble from
+      syllables via the planner's fallback tier + Viterbi. (Direct per-syllable
+      synthesis; slicing a whole utterance via forced alignment is NOT done —
+      that needs an aligner Piper doesn't provide.) (v0.18.0)
 - [ ] Coverage regression check in CI over a fixed script corpus (§16)
 - [ ] Mode B — Semi-Readable Speech (`--mode speech`) (§12)
 - [ ] `analyze` command / BankAnalyzer: auto-fill pitch_center_hz + energy (§9, §14)

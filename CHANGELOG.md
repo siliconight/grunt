@@ -4,6 +4,22 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.18.0] - 2026-06-16
+
+### Added (Phase 2 — syllable-unit generation)
+- `generate --unit-type syllable` bakes one clip per row as a **syllable** unit
+  keyed by the CSV key. Supply ARPAbet keys (e.g. `G EY T`,`gate`) and the
+  planner's syllable fallback tier matches them, so a bank can assemble words it
+  has no whole-word clip for — now worth doing because the Viterbi selector
+  (v0.17.0) sequences those parts by join cost. Default stays `--unit-type word`.
+
+### Note — honest scope
+- This synthesizes each syllable directly (one short Piper utterance per
+  syllable). It does NOT slice a whole spoken utterance into syllables via
+  forced alignment — Piper emits no phoneme timing, and bolting on an aligner
+  (e.g. MFA) is a real dependency not taken. Word units remain the crispest path
+  for grunt's fixed bark vocabulary; syllable units are the flexibility option.
+
 ## [0.17.0] - 2026-06-16
 
 ### Changed (Phase 3 — Viterbi unit selection replaces greedy)

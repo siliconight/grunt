@@ -352,9 +352,16 @@ int cmd_generate(int argc, char** argv) {
     if (!a.has("units") || !a.has("voice") || !a.has("model")) {
         std::cerr << "usage: grunt generate --units <units.csv> --voice <dir> --model <model-id>\n"
                      "  [--generator piper|stub] [--registry data/voice_models.json]\n"
-                     "  units.csv rows: key,text  (e.g.  ge,gah)\n"
+                     "  [--unit-type word|syllable]  (default word)\n"
+                     "  units.csv rows: key,text  (e.g.  alert,hey)\n"
+                     "  word units are keyed by the spoken text; syllable units by the key\n"
+                     "  (use ARPAbet keys like \"G EY T\" so the planner's syllable tier matches).\n"
                      "  --model must be a license-cleared id from the registry.\n";
         return 2;
+    }
+    std::string unit_type = a.get("unit-type", "word");
+    if (unit_type != "word" && unit_type != "syllable") {
+        std::cerr << "--unit-type must be 'word' or 'syllable'\n"; return 2;
     }
     std::string registry_path = a.get("registry", resource_path("data/voice_models.json"));
     VoiceModelRegistry reg; std::string err;
@@ -407,22 +414,27 @@ int cmd_generate(int argc, char** argv) {
             blocked++;
         }
 
-        // Bake as a WORD unit keyed by the spoken text (lowercased, first word
-        // if multi-word), so the planner's word-first lookup matches when a
-        // user types that word. Single-word texts give the cleanest match;
-        // multi-word texts (e.g. "over there") are keyed by the whole phrase
-        // AND remain reachable as a bark by the CSV key via the id.
-        std::string wordkey = text;
-        for (auto& c : wordkey) c = (char)std::tolower((unsigned char)c);
-        // trim leading/trailing spaces
-        while (!wordkey.empty() && wordkey.front() == ' ') wordkey.erase(wordkey.begin());
-        while (!wordkey.empty() && wordkey.back() == ' ') wordkey.pop_back();
+        // Key + type depend on --unit-type:
+        //  word     -> type "word",     keyed by the lowercased spoken text
+        //  syllable -> type "syllable", keyed by the CSV key (use ARPAbet, e.g.
+        //              "G EY T", to match the planner's syllable tier)
+        std::string ukey, utype;
+        if (unit_type == "syllable") {
+            ukey = key;            // caller supplies the matching key
+            utype = "syllable";
+        } else {
+            ukey = text;           // word unit keyed by what's spoken
+            for (auto& c : ukey) c = (char)std::tolower((unsigned char)c);
+            while (!ukey.empty() && ukey.front() == ' ') ukey.erase(ukey.begin());
+            while (!ukey.empty() && ukey.back() == ' ') ukey.pop_back();
+            utype = "word";
+        }
 
         std::string rel = "units/generated/" + key + ".wav";
         if (!first) units_json << ",\n";
         first = false;
         units_json << "    { \"id\": \"gen_" << json_escape(key) << "\""
-                   << ", \"type\": \"word\", \"key\": \"" << json_escape(wordkey) << "\""
+                   << ", \"type\": \"" << utype << "\", \"key\": \"" << json_escape(ukey) << "\""
                    << ", \"emotion\": \"neutral\", \"file\": \"" << json_escape(rel) << "\""
                    << ", \"provenance\": {"
                    << " \"source\": \"" << json_escape(clip.provenance.source) << "\""
