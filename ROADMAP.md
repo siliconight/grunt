@@ -160,6 +160,54 @@ Tasks:
 
 ---
 
+## Quality refinements (inspired by external reading) — [ ] POLISH, not blocking
+
+These are quality upgrades on top of working systems, deliberately NOT queued
+ahead of breadth work (diphones/Viterbi, male voice, GUI) or ahead of verifying
+the existing DSP by ear on Windows. Recorded so the design intent isn't lost.
+Each must still pass the north star (and the DSP ones are best judged by ear,
+which the sandbox can't do — verify on a real build before relying on them).
+
+### Formant filter bank (refine the current resample-based formant shift)
+Today `dsp::formant_shift` slides the whole spectral envelope by one ratio
+(cheap, blunt — every formant moves together). The more correct model is a
+**parallel bank of band-pass filters** at fixed centre frequencies F1/F2/F3,
+independent of pitch — which is what actually distinguishes vocal-tract
+*size/shape* (long tube = low formants = orc/big; short = high = small/child)
+rather than a tape-speed feel.
+- [ ] Biquad band-pass formant bank (3 formants min; F1/F2/F3 + per-formant Q/gain)
+- [ ] Canonical vowel formant table as a starting point (ee/oo/i/e/u/a — F1≈270–660,
+      F2≈870–2300, F3≈2400–3000 for a male tract); characters scale these by a
+      vocal-tract factor instead of a flat envelope ratio
+- [ ] Character presets gain optional explicit formant centres (orc: low; demon:
+      low+wide Q; raspy: shifted + noisy) — replacing the single `formant_shift`
+      scalar when present, falling back to it otherwise
+- [ ] Keep the resample shift as the cheap default; bank is opt-in per character
+Rationale: a correctness/quality refinement, not a fix — the resample shift
+already gives the four DSP characters distinct timbres. Worth doing once the
+current DSP is confirmed good by ear.
+
+### Principled emotion → prosody rules
+grunt already biases prosody by emotion; this makes the contours principled
+rather than ad hoc, drawing on the classic emotion-in-synthetic-speech framework
+(per-emotion pitch level, pitch range, tempo, loudness, and contour shape).
+- [ ] Per-emotion prosody profiles (anger: higher mean F0, wider range, faster,
+      louder, abrupt contours; fear: high + variable; sad: low, narrow, slow) as
+      data (data/emotions.json), editable like characters/efforts
+- [ ] ProsodyPlanner reads the profile instead of hard-coded biases
+- [ ] Compose with character emotion_bias and effort intensity already in place
+Rationale: directly serves "characterful, not realistic" — emotion legibility
+is exactly the blank grunt fills. Lower-risk than the formant bank (it's
+parameter shaping, not new signal processing).
+
+### Positioning note (no build)
+The synthetic-voice ethics reading (responsible synthetic voices, "hype vs
+substance") reinforces grunt's existing stance rather than adding work: licensing
+airtight by construction, real VO reserved for key lines, no voice cloning of
+real people. Keep this posture explicit in README/docs; nothing to implement.
+
+---
+
 ## Phase 4 — Game Pipeline Integration  (TDD §18 Phase 4)  — [~] PARTIAL
 
 Goal: usable by designers; clean handoff to gool.

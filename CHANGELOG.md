@@ -4,6 +4,17 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.8.1] - 2026-06-16
+
+### Changed
+- ROADMAP: added a "Quality refinements" section capturing two designed-but-
+  deferred upgrades — a biquad formant filter bank (F1/F2/F3, vocal-tract-based,
+  refining the current resample formant shift) and principled per-emotion
+  prosody profiles (data-driven). Both marked as polish, explicitly not queued
+  ahead of breadth work or ahead of verifying the current DSP by ear. Plus a
+  positioning note that the synthetic-voice ethics stance is already embodied,
+  not new work.
+
 ## [0.8.0] - 2026-06-16
 
 ### Added (PSOLA — clean repitch/retime, completes the Phase 3 DSP thread)
