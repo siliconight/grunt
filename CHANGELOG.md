@@ -24,6 +24,26 @@ All notable changes to grunt are documented here. Format follows
   legal advice; confirm before commercial release. Alternatives noted in the
   registry: John (finetuned), Bryce (creator's own voice).
 
+## [0.9.0] - 2026-06-16
+
+### Added (male base voice — characters no longer share one timbre)
+- Registry gains `piper-en_US-norman`: a US English **male** voice, trained from
+  scratch on ~15.5h of public-domain LibriVox recordings, dedicated public
+  domain (same author as the LJ Speech voice). Clean transitive chain; commercial
+  + redistributable.
+- Male-coded characters now derive from Norman instead of the female LJ Speech
+  voice: grunt, deep_big, orc, demon, yelling_man (and robot, which is
+  neutral/heavily processed). woman_raspy and yelling_woman stay on LJ Speech.
+  This fixes the prior state where all eight characters were pitch-shifted
+  versions of one female timbre.
+
+### Note
+- `base_voice` drives the `generate` path (which voice synthesizes a character's
+  bank). Download `norman.onnx` + `.onnx.json` from brycebeattie.com/files/tts
+  and place where `--model` resolves it. As always: not legal advice — confirm
+  the public-domain provenance before commercial release; the gate enforces the
+  registry entry.
+
 ## [0.8.1] - 2026-06-16
 
 ### Changed
