@@ -1,80 +1,88 @@
 @echo off
 REM ===========================================================================
-REM  grunt — first-bank setup for Windows
+REM  grunt - first-bank setup for Windows
 REM
-REM  Automates the generate-path dependencies so you can hear real English words:
-REM    1. downloads the Piper TTS engine (offline, MIT) into .\piper\
-REM    2. downloads a license-cleared voice model (LJ Speech, public domain)
-REM    3. puts piper on PATH for this session
-REM    4. runs `grunt doctor --live` to verify the whole chain
-REM    5. generates your first talking bank from examples\barks.csv
-REM    6. plays a real spoken word
+REM  Downloads Piper + a public-domain voice, builds a real talking bank, and
+REM  plays a spoken word. Run from the unzipped grunt package (where grunt.exe
+REM  lives). Re-running is safe (skips what's already downloaded).
 REM
-REM  Run this from the unzipped grunt package folder (where grunt.exe lives).
-REM  Re-running is safe: it skips downloads that are already present.
+REM  The window STAYS OPEN at the end (success or failure) so you can read it.
 REM ===========================================================================
 setlocal enabledelayedexpansion
 cd /d "%~dp0"
 
 echo(
-echo === grunt first-bank setup ===
+echo ============================================
+echo   grunt first-bank setup
+echo ============================================
 echo(
 
-REM --- locate grunt.exe (this script ships beside it) -----------------------
 set "GRUNT=grunt.exe"
 if not exist "%GRUNT%" (
-  echo ERROR: grunt.exe not found next to this script.
-  echo Run setup.bat from inside the unzipped grunt package folder.
+  echo [X] grunt.exe not found next to this script.
+  echo     Run setup.bat from inside the unzipped grunt package folder.
   goto :fail
 )
+echo [ok] found grunt.exe
 
 REM --- 1. Piper engine ------------------------------------------------------
 set "PIPER_DIR=%cd%\piper"
-set "PIPER_EXE=%PIPER_DIR%\piper\piper.exe"
-if exist "%PIPER_EXE%" (
-  echo [skip] Piper already present at %PIPER_EXE%
+set "PIPER_EXE="
+if exist "%PIPER_DIR%\piper\piper.exe" set "PIPER_EXE=%PIPER_DIR%\piper\piper.exe"
+if exist "%PIPER_DIR%\piper.exe"       set "PIPER_EXE=%PIPER_DIR%\piper.exe"
+
+if defined PIPER_EXE (
+  echo [ok] Piper already present: !PIPER_EXE!
 ) else (
   echo [1/6] Downloading Piper TTS engine...
   set "PIPER_ZIP=%cd%\piper_windows_amd64.zip"
   set "PIPER_URL=https://github.com/rhasspy/piper/releases/download/2023.11.14-2/piper_windows_amd64.zip"
-  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '!PIPER_URL!' -OutFile '!PIPER_ZIP!' } catch { exit 1 }"
-  if errorlevel 1 ( echo ERROR: could not download Piper. Check your connection. & goto :fail )
+  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '!PIPER_URL!' -OutFile '!PIPER_ZIP!' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
+  if errorlevel 1 ( echo [X] Could not download Piper. Check your internet connection. & goto :fail )
   echo       Extracting...
-  powershell -NoProfile -Command "Expand-Archive -Force '!PIPER_ZIP!' '%PIPER_DIR%'"
+  powershell -NoProfile -Command "try { Expand-Archive -Force '!PIPER_ZIP!' '%PIPER_DIR%' } catch { Write-Host $_.Exception.Message; exit 1 }"
+  if errorlevel 1 ( echo [X] Could not extract Piper zip. & goto :fail )
   del "!PIPER_ZIP!" >nul 2>&1
-  if not exist "%PIPER_EXE%" (
-    REM some releases extract piper.exe at the dir root rather than piper\piper\
-    if exist "%PIPER_DIR%\piper.exe" set "PIPER_EXE=%PIPER_DIR%\piper.exe"
-  )
+  REM re-detect after extraction
+  if exist "%PIPER_DIR%\piper\piper.exe" set "PIPER_EXE=%PIPER_DIR%\piper\piper.exe"
+  if exist "%PIPER_DIR%\piper.exe"       set "PIPER_EXE=%PIPER_DIR%\piper.exe"
 )
 
-REM put piper on PATH for this session and for the model dir lookup
-for %%I in ("%PIPER_EXE%") do set "PIPER_BIN_DIR=%%~dpI"
-set "PATH=%PIPER_BIN_DIR%;%PATH%"
+if not defined PIPER_EXE (
+  echo [X] piper.exe not found after download/extract. The release layout may
+  echo     have changed. Look inside the 'piper' folder and see SETUP.md.
+  goto :fail
+)
+echo [ok] piper.exe ready: !PIPER_EXE!
 
-REM --- 2. Voice model (LJ Speech — public domain, verifiable URL) -----------
-REM  This is the female base voice. To use the MALE Norman voice instead,
-REM  download norman.onnx + norman.onnx.json from https://brycebeattie.com/files/tts
-REM  into this folder and change MODEL_ID below to piper-en_US-norman.
+REM put piper on PATH for this session
+for %%I in ("!PIPER_EXE!") do set "PIPER_BIN_DIR=%%~dpI"
+set "PATH=!PIPER_BIN_DIR!;%PATH%"
+
+REM --- 2. Voice model (LJ Speech - public domain, verifiable URL) -----------
+REM  Female base voice. For the MALE Norman voice: download norman.onnx +
+REM  norman.onnx.json from https://brycebeattie.com/files/tts into this folder
+REM  and set MODEL_ID=piper-en_US-norman, MODEL=norman.onnx below.
 set "MODEL=en_US-ljspeech-high.onnx"
 set "MODEL_ID=piper-en_US-ljspeech"
 set "MODEL_BASE=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/high"
 if exist "%MODEL%" (
-  echo [skip] Voice model already present: %MODEL%
+  echo [ok] Voice model already present: %MODEL%
 ) else (
   echo [2/6] Downloading voice model (LJ Speech, public domain)...
-  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%?download=true' -OutFile '%MODEL%' } catch { exit 1 }"
-  if errorlevel 1 ( echo ERROR: could not download the voice model. & goto :fail )
-  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%.json?download=true' -OutFile '%MODEL%.json' } catch { exit 1 }"
-  if errorlevel 1 ( echo ERROR: could not download the model config (.json). & goto :fail )
+  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%?download=true' -OutFile '%MODEL%' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
+  if errorlevel 1 ( echo [X] Could not download the voice model. & goto :fail )
+  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%.json?download=true' -OutFile '%MODEL%.json' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
+  if errorlevel 1 ( echo [X] Could not download the model config (.json). & goto :fail )
 )
+if not exist "%MODEL%"      ( echo [X] model file missing after download. & goto :fail )
+if not exist "%MODEL%.json" ( echo [X] model .json missing after download. & goto :fail )
+echo [ok] voice model ready: %MODEL%
 
+REM --- 3/4. verify the chain ------------------------------------------------
 echo(
-echo [3/6] Piper on PATH for this session: %PIPER_BIN_DIR%
-echo(
-
-REM --- 4. doctor (live) -----------------------------------------------------
-echo [4/6] Verifying the setup with: grunt doctor --live
+echo [3/6] Piper on PATH for this session.
+echo [4/6] Verifying with: grunt doctor --live
 echo(
 "%GRUNT%" doctor --live
 echo(
@@ -82,31 +90,59 @@ echo(
 REM --- 5. first bank --------------------------------------------------------
 echo [5/6] Generating your first talking bank into voices\my_guards ...
 "%GRUNT%" generate --units examples\barks.csv --voice voices\my_guards --model %MODEL_ID%
-if errorlevel 1 ( echo ERROR: generate failed. See messages above. & goto :fail )
+if errorlevel 1 ( echo [X] generate failed - see the messages above. & goto :fail )
+
+REM confirm the bank actually got units (catches a silent empty generate)
+if not exist "voices\my_guards\metadata\units.json" (
+  echo [X] generate ran but no units.json was written. The bank is empty.
+  goto :fail
+)
+echo [ok] bank generated: voices\my_guards
 
 REM --- 6. speak -------------------------------------------------------------
 echo(
 echo [6/6] Rendering a real spoken word...
 "%GRUNT%" synth --text "intruder" --character orc --voice voices\my_guards --out first_word.ogg
-if errorlevel 1 ( echo ERROR: synth failed. & goto :fail )
+if errorlevel 1 ( echo [X] synth failed. & goto :fail )
+if not exist "first_word.ogg" ( echo [X] no output file was written. & goto :fail )
 
 echo(
-echo === done ===
-echo Playing first_word.ogg  (an orc saying "intruder")
+echo ============================================
+echo   SUCCESS - you have a real talking bank.
+echo ============================================
+echo Playing first_word.ogg (an orc saying "intruder")...
 start "" "first_word.ogg"
 echo(
-echo You're set up. From here:
-echo   - GUI: run grunt_gui.exe, open "advanced", point the bank at voices\my_guards, pick a character
-echo   - CLI: grunt synth --text "your line" --character orc --voice voices\my_guards --out line.ogg
-echo   - edit examples\barks.csv to add your own lines, then re-run the generate step
+echo From here:
+echo   GUI: run grunt_gui.exe, open "advanced", point the bank at
+echo        voices\my_guards, then pick a character from the dropdown.
+echo   CLI: grunt synth --text "your line" --character orc ^
+echo        --voice voices\my_guards --out line.ogg
+echo   Edit examples\barks.csv to add your own lines, then re-run this.
 echo(
-goto :end
+echo NOTE: the bundled demo bank (heavy_brother) is grunt-only by design, so
+echo       it sounds like grunts. voices\my_guards is your REAL words bank -
+echo       point the GUI at it to hear speech.
+echo(
+goto :done
 
 :fail
 echo(
-echo Setup did not finish. You can still try the zero-setup demo:  grunt.exe quickstart
-echo Or see SETUP.md for the manual steps.
+echo ============================================
+echo   SETUP DID NOT FINISH
+echo ============================================
+echo The step marked [X] above is what failed. Fixes:
+echo   - check your internet connection and re-run setup.bat
+echo   - or see SETUP.md for the manual steps
+echo   - you can always hear the (grunt-only) demo: grunt.exe quickstart
+echo(
+echo This window will stay open. Press any key to close it.
+pause >nul
+endlocal
 exit /b 1
 
-:end
+:done
+echo This window will stay open so you can read the results.
+echo Press any key to close it.
+pause >nul
 endlocal

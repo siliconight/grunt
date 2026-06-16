@@ -4,6 +4,22 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.18.1] - 2026-06-16
+
+### Fixed (setup.bat usability)
+- The window no longer closes before you can read it — both the success and
+  failure paths now `pause` and wait for a keypress.
+- Every step reports `[ok]` / `[X]`, and the script ends with an unmistakable
+  **SUCCESS** or **SETUP DID NOT FINISH** banner (the failed step is the one
+  marked `[X]`).
+- Added verification that catches silent failures the closed window used to
+  hide: confirms `piper.exe` actually exists after extraction (re-detects both
+  release layouts), that the model + its `.json` downloaded, that `generate`
+  wrote a `units.json`, and that the output clip was written.
+- Closing message explains the easy-to-miss gotcha: the bundled demo bank is
+  grunt-only by design, so to hear words you must point the GUI's "advanced"
+  bank field at the generated `voices\my_guards`.
+
 ## [0.18.0] - 2026-06-16
 
 ### Added (Phase 2 — syllable-unit generation)
