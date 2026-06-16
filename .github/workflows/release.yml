@@ -107,6 +107,9 @@ jobs:
           cp -r examples "$pkg/"
           cp README.md SETUP.md "$pkg/" 2>/dev/null || true
           cp setup.bat "$pkg/" 2>/dev/null || true
+          # ensure the batch file has CRLF endings (cmd.exe fails to parse LF-only
+          # .bat files — window opens and closes instantly with no output)
+          powershell -NoProfile -Command "$p='$pkg/setup.bat'; if (Test-Path $p) { (Get-Content $p -Raw) -replace \"`r`n\",\"`n\" -replace \"`n\",\"`r`n\" | Set-Content -NoNewline $p }"
           # a friendly launch note
           printf 'Double-click grunt_gui.exe to start (uses the bundled grunt-noise demo bank).\nFirst launch: Windows may show a SmartScreen notice (unsigned app) -- click More info > Run anyway.\n\nTo hear REAL SPOKEN WORDS: double-click setup.bat once. It downloads the Piper\nspeech engine + a public-domain voice, builds a talking bank, and plays a word.\nThen in the GUI open "advanced" and point the bank at voices\\my_guards.\n\nNo install needed; everything stays in this folder.\n' > "$pkg/READ ME FIRST.txt"
           7z a "$pkg.zip" "$pkg"

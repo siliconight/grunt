@@ -1,0 +1,4 @@
+# Windows batch files must have CRLF line endings or cmd.exe fails to parse them
+# (symptom: double-clicked window opens and closes instantly with no output).
+*.bat text eol=crlf
+*.cmd text eol=crlf

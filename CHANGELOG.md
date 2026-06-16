@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.18.3] - 2026-06-16
+
+### Fixed (the actual cause of setup.bat closing instantly)
+- `setup.bat` had **Unix LF line endings**, not Windows CRLF. cmd.exe cannot
+  parse an LF-only `.bat` reliably — it bails before printing anything, so the
+  window opens and closes with no output. This was the real cause behind the
+  repeated "closed again, no success message"; the earlier content fixes
+  (parens, caret) were valid but not the reason it died.
+- Converted `setup.bat` to CRLF. Added `.gitattributes` (`*.bat text eol=crlf`)
+  so git always checks it out with CRLF, and a CI step that re-normalizes the
+  batch file to CRLF when building the Windows package — so this can't regress
+  when the zip is assembled on Linux. Verified CRLF survives into the tarball.
+
 ## [0.18.2] - 2026-06-16
 
 ### Fixed (setup.bat parse error — closed instantly with no output)
