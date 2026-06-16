@@ -4,6 +4,7 @@
 #include "AudioOut.h"
 #include "ShipGate.h"
 #include "Generator.h"
+#include "Character.h"
 #include "Json.h"
 #include <iostream>
 #include <cassert>
@@ -193,6 +194,26 @@ void test_generator_registry() {
           "generator: clean-model clip is shippable provenance");
 }
 
+void test_character_library() {
+    std::string cpath = tmp_path("_grunt_chars.json");
+    {
+        std::ofstream of(cpath);
+        of << R"({"characters":[
+          {"id":"grunt","display_name":"Grunt","base_voice":"v","pitch_offset_st":-3.0,"fx_preset":"clean_ps1","emotion_bias":"neutral","ready":true},
+          {"id":"demon","display_name":"Demon","base_voice":"v","pitch_offset_st":-9.0,"fx_preset":"monster_ps1","emotion_bias":"angry","sub_layer":true,"ready":false,"_blocked_on":"sub layer"}
+        ]})";
+    }
+    CharacterLibrary lib; std::string err;
+    CHECK(lib.load(cpath, err), "character: library loads");
+    CHECK(lib.all().size() == 2, "character: 2 presets");
+    const CharacterPreset* g = lib.find("grunt");
+    CHECK(g != nullptr && g->pitch_offset_st == -3.0, "character: grunt pitch");
+    CHECK(g->ready, "character: grunt ready");
+    const CharacterPreset* d = lib.find("demon");
+    CHECK(d != nullptr && !d->ready && d->sub_layer, "character: demon needs-DSP flagged");
+    CHECK(lib.find("missing") == nullptr, "character: missing -> null");
+}
+
 int main() {
     test_normalizer();
     test_syllable();
@@ -203,6 +224,7 @@ int main() {
     test_format_dispatch();
     test_phoneme_mapper();
     test_generator_registry();
+    test_character_library();
     test_renderer_clipping();
     test_ship_gate_logic();
     std::cout << (failures == 0 ? "\nALL TESTS PASSED\n" : "\nTESTS FAILED\n");

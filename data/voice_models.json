@@ -1,7 +1,20 @@
 {
   "schema_version": 1,
-  "_comment": "Allowlist of license-cleared generator voice models. `generate` only uses models listed here unless --allow-unverified is passed. Each entry is diligence done ONCE, then enforced forever by the ship gate. Adding a model means you have read its license (and, for trained models, its training-data license) and confirmed commercial + redistributable rights.",
+  "_comment": "Allowlist of license-cleared generator voice models. `generate` only uses models listed here unless --allow-unverified is passed. Each entry is diligence done ONCE, then enforced forever by the ship gate. Adding a model means you have read its license AND its training-data license and confirmed commercial + redistributable rights. NOT legal advice — good-faith reads of published model cards; confirm before a commercial release.",
   "models": [
+    {
+      "id": "piper-en_US-ljspeech",
+      "generator": "piper",
+      "model_file": "en_US-ljspeech-high.onnx",
+      "license": "MIT (model) + public-domain (dataset)",
+      "commercial_use": true,
+      "redistributable": true,
+      "source_url": "https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/ljspeech/high",
+      "dataset": "LJ Speech (https://keithito.com/LJ-Speech-Dataset/)",
+      "dataset_license": "public domain",
+      "voice_traits": "US English, female, single speaker, trained from scratch on public-domain data",
+      "notes": "Clean transitive chain: rhasspy/piper-voices repo is MIT; this voice trained FROM SCRATCH on public-domain LJ Speech (not fine-tuned from a restricted base like blizzard/lessac). Good default female base. Download .onnx + .onnx.json where grunt's --model can find them. Verified vs published MODEL_CARD 2026-06; re-confirm before commercial release."
+    },
     {
       "id": "piper-en_US-cc0-example",
       "generator": "piper",
@@ -10,7 +23,7 @@
       "commercial_use": true,
       "redistributable": true,
       "source_url": "https://huggingface.co/<cc0-voice>",
-      "notes": "PLACEHOLDER — replace with a real verified CC0 Piper voice. CC0 voices exist (public-domain dedication, no strings). Confirm the MODEL_CARD says CC0 and the training dataset is also unrestricted before shipping."
+      "notes": "PLACEHOLDER template for adding a true CC0 voice (e.g. a male base). Do NOT generate from this id until replaced — its model_file does not exist."
     }
   ]
 }

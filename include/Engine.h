@@ -27,11 +27,24 @@ public:
 
     const UnitDatabase& db() const { return db_; }
 
+    // Optional per-render character layering (from a CharacterPreset).
+    struct Options {
+        double extra_pitch_st = 0.0;  // added to every unit's pitch offset
+        double extra_gain_db  = 0.0;  // added to every unit's gain
+    };
+
     // Render one line. Deterministic for a fixed seed.
     SynthResult synth(const std::string& text,
                       Emotion emotion,
                       const std::string& fx_preset,
                       uint64_t seed);
+
+    // With character layering (pitch/gain offsets).
+    SynthResult synth(const std::string& text,
+                      Emotion emotion,
+                      const std::string& fx_preset,
+                      uint64_t seed,
+                      const Options& opts);
 
 private:
     UnitDatabase db_;

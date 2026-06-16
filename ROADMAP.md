@@ -135,13 +135,17 @@ Honest dependency split:
   renderer gains formant/sub capability.
 
 Tasks:
-- [ ] `CharacterPreset` type + `data/characters.json` loader (user-editable)
-- [ ] `--character <name>` flag on `synth` / `generate`; applies the recipe
-- [ ] 2–3 license-cleared base voices in the registry (male, female, neutral)
-- [ ] Ship the "achievable now" four presets
+- [x] `CharacterPreset` type + `data/characters.json` loader (user-editable)
+- [x] `--character <name>` flag on `synth`; applies the recipe (pitch/FX/prosody/gain)
+- [x] Real license-cleared base voice in the registry (LJ Speech, public-domain
+      dataset, MIT model repo — `piper-en_US-ljspeech`)
+- [x] The four "achievable now" presets render (Grunt, Robot, Yelling Woman,
+      Yelling Man); not-ready ones render an approximation with a note
+- [ ] `--character` on `generate` too (generate base voice per character)
+- [ ] A second base voice (male) so presets aren't all one timbre
 - [ ] GUI character dropdown (preview by ear per character)
 - [ ] Renderer DSP for the rest: formant shift, sub-octave layer, rasp (ties
-      to Phase 3) — then ship the remaining four
+      to Phase 3) — then the remaining four become fully realized
 - [ ] Each preset checked against the north star (lowers barrier, stays airtight)
 
 ---

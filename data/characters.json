@@ -23,7 +23,7 @@
     {
       "id": "yelling_woman",
       "display_name": "Yelling Woman",
-      "base_voice": "piper-en_US-cc0-female-example",
+      "base_voice": "piper-en_US-ljspeech",
       "pitch_offset_st": 2.0,
       "fx_preset": "radio_ps1",
       "emotion_bias": "angry",
@@ -54,7 +54,7 @@
     {
       "id": "woman_raspy",
       "display_name": "Woman (raspy)",
-      "base_voice": "piper-en_US-cc0-female-example",
+      "base_voice": "piper-en_US-ljspeech",
       "pitch_offset_st": 0.0,
       "fx_preset": "clean_ps1",
       "emotion_bias": "neutral",

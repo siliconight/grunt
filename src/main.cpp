@@ -10,6 +10,7 @@
 #include "AudioOut.h"
 #include "Engine.h"
 #include "Generator.h"
+#include "Character.h"
 
 #include <iostream>
 #include <fstream>
@@ -80,8 +81,9 @@ int cmd_synth(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
     if (!a.has("text") || !a.has("voice") || !a.has("out")) {
         std::cerr << "usage: grunt synth --text \"...\" --voice <dir> --out <file>"
-                     " [--emotion neutral|urgent|angry] [--style clean_ps1]"
-                     " [--format ogg|wav] [--quality 0.4] [--seed N]\n"
+                     " [--character <name>] [--emotion neutral|urgent|angry]"
+                     " [--style clean_ps1] [--format ogg|wav] [--quality 0.4] [--seed N]\n"
+                     "  --character applies a preset from data/characters.json (overrides emotion/style).\n"
                      "  default format: ogg (Vorbis). out extension is set to match the format.\n";
         return 2;
     }
@@ -90,6 +92,32 @@ int cmd_synth(int argc, char** argv) {
     Emotion emo = a.has("emotion") ? emotion_from_string(a.get("emotion")) : Emotion::Neutral;
     std::string fx = a.get("style", "clean_ps1");
     uint64_t seed = a.has("seed") ? std::stoull(a.get("seed")) : 0x9E3779B97F4A7C15ULL;
+    Engine::Options opts;
+
+    // --character applies a preset recipe (overrides emotion/style unless those
+    // were explicitly given). Pitch/gain layer onto the render.
+    if (a.has("character")) {
+        CharacterLibrary lib;
+        std::string cpath = a.get("characters", "data/characters.json");
+        if (!lib.load(cpath, err)) { std::cerr << "characters: " << err << "\n"; return 1; }
+        const CharacterPreset* cp = lib.find(a.get("character"));
+        if (!cp) {
+            std::cerr << "character '" << a.get("character") << "' not found in " << cpath << "\n"
+                      << "available characters:\n";
+            for (const auto& p : lib.all())
+                std::cerr << "  " << p.id << "  (" << p.display_name << ")"
+                          << (p.ready ? "" : "  [needs DSP: " + p.blocked_on + "]") << "\n";
+            return 1;
+        }
+        if (!cp->ready)
+            std::cerr << "note: character '" << cp->id << "' needs DSP not yet built ("
+                      << cp->blocked_on << "); rendering a reasonable approximation.\n";
+        if (!a.has("style"))   fx = cp->fx_preset;
+        if (!a.has("emotion")) emo = emotion_from_string(cp->emotion_bias);
+        opts.extra_pitch_st = cp->pitch_offset_st;
+        opts.extra_gain_db  = cp->gain_db;
+    }
+
     bool fb = false;
     AudioFormat fmt = resolve_format(a, fb);
     float q = resolve_quality(a);
@@ -102,7 +130,7 @@ int cmd_synth(int argc, char** argv) {
 
     Engine engine;
     if (!engine.load_voice(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
-    SynthResult res = engine.synth(a.get("text"), emo, fx, seed);
+    SynthResult res = engine.synth(a.get("text"), emo, fx, seed, opts);
     if (!res.ok) { std::cerr << "synth failed: " << res.error << "\n"; return 1; }
     AudioBuffer& buf = res.audio;
 

@@ -4,6 +4,25 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.5.0] - 2026-06-16
+
+### Added (character presets — "type text, pick a character")
+- `CharacterPreset` + `CharacterLibrary` loading `data/characters.json`.
+- `--character <name>` on `synth`: applies a preset recipe (base voice + pitch
+  + FX + emotion bias + gain). Explicit `--style`/`--emotion` still override.
+  An unknown name lists all characters; a not-yet-DSP-ready character renders a
+  reasonable approximation with an honest note.
+- `Engine::Options` layers per-character pitch/gain onto every unit.
+- The four "achievable now" characters work end-to-end: Grunt, Robot, Yelling
+  Woman, Yelling Man (Wilhelm).
+
+### Verified
+- Registry now contains a real license-cleared base voice: `piper-en_US-ljspeech`
+  (rhasspy/piper-voices, MIT model repo; trained from scratch on the
+  public-domain LJ Speech dataset — clean transitive chain). Female-based
+  presets point at it. The remaining placeholder is kept only as a template for
+  adding a male/CC0 base. Not legal advice — confirm before commercial release.
+
 ## [0.4.2] - 2026-06-16
 
 ### Added
