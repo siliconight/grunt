@@ -4,6 +4,33 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.19.0] - 2026-06-16
+
+### Added (GUI: bank dropdown + in-app voice generation)
+- **Voice bank dropdown** replaces the typed bank-path field. The GUI scans
+  `voices/` for banks and lists them, labeling each `(words)` or
+  `(grunts only)` so you can see at a glance which can actually speak. It
+  defaults to a word-capable bank when one exists, and loads on selection.
+- **Generate voices** section (collapsing): finds Piper automatically (PATH,
+  then a bundled `.\piper\` next to the exe), lets you name a new bank and pick
+  a voice model, and bakes a word bank from `examples/barks.csv` **in-app** —
+  then auto-selects and loads it. No more dependence on the external
+  `setup.bat`; you see success or the exact error right in the window.
+- Generation logic extracted into a shared `generate_bank()` (BankGen) used by
+  both the CLI `generate` command and the GUI, so there's one code path.
+
+### Why
+- The bank field exposed the wrong concept (file paths) and, more importantly,
+  the only bank present was the grunt-only demo — so there were no word-voices
+  to pick. Bringing generation into the GUI closes that gap directly and makes
+  the grunt-only-vs-words distinction visible instead of a silent surprise.
+
+### Note
+- The Generate button needs Piper present (auto-detected) and a downloaded voice
+  model; if Piper isn't found the section explains how to get it. GUI behavior
+  is validated on Windows (can't run it in dev); the shared generate path and
+  bank discovery are tested here.
+
 ## [0.18.3] - 2026-06-16
 
 ### Fixed (the actual cause of setup.bat closing instantly)

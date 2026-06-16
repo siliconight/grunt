@@ -13,6 +13,7 @@
 #include "Character.h"
 #include "Vocalization.h"
 #include "ResourcePath.h"
+#include "BankGen.h"
 
 #include <iostream>
 #include <fstream>
@@ -363,101 +364,20 @@ int cmd_generate(int argc, char** argv) {
     if (unit_type != "word" && unit_type != "syllable") {
         std::cerr << "--unit-type must be 'word' or 'syllable'\n"; return 2;
     }
-    std::string registry_path = a.get("registry", resource_path("data/voice_models.json"));
-    VoiceModelRegistry reg; std::string err;
-    if (!reg.load(registry_path, err)) { std::cerr << "registry: " << err << "\n"; return 1; }
 
-    const VoiceModel* model = reg.find(a.get("model"));
-    if (!model) {
-        std::cerr << "model '" << a.get("model") << "' not found in registry " << registry_path << "\n"
-                  << "available cleared models:\n";
-        for (const auto& m : reg.all())
-            std::cerr << "  " << m.id << "  (" << m.license << ", "
-                      << (m.commercial_use && m.redistributable ? "shippable" : "NOT shippable") << ")\n";
-        return 1;
-    }
+    GenerateOptions opt;
+    opt.units_csv     = a.get("units");
+    opt.voice_dir     = a.get("voice");
+    opt.model_id      = a.get("model");
+    opt.registry_path = a.get("registry", resource_path("data/voice_models.json"));
+    opt.generator     = a.get("generator", "");   // empty = model default
+    opt.unit_type     = unit_type;
 
-    std::string gen_name = a.get("generator", model->generator);
-    Generator* gen = make_generator(gen_name);
-    if (!gen) { std::cerr << "unknown generator: " << gen_name << "\n"; return 1; }
-
-    std::string voice_dir = a.get("voice");
-    std::string units_dir = voice_dir + "/units/generated";
-    std::error_code ec;
-    std::filesystem::create_directories(units_dir, ec);
-    if (ec) { std::cerr << "cannot create " << units_dir << ": " << ec.message() << "\n"; delete gen; return 1; }
-
-    std::ifstream csv(a.get("units"));
-    if (!csv) { std::cerr << "cannot open units csv: " << a.get("units") << "\n"; delete gen; return 1; }
-
-    std::ostringstream units_json;
-    units_json << "{\n  \"units\": [\n";
-
-    std::string line; bool first = true; int n = 0, blocked = 0; bool hdr = false;
-    while (std::getline(csv, line)) {
-        if (line.empty()) continue;
-        std::vector<std::string> f; std::stringstream ss(line); std::string cell;
-        while (std::getline(ss, cell, ',')) f.push_back(cell);
-        if (f.size() < 2) continue;
-        if (!hdr && f[0] == "key") { hdr = true; continue; }
-        hdr = true;
-
-        std::string key = f[0], text = f[1];
-        GeneratedClip clip = gen->generate(key, text, *model, units_dir);
-        if (!clip.ok) { std::cerr << "  skip " << key << ": " << clip.error << "\n"; continue; }
-
-        // honest provenance: warn if this clip won't pass the gate
-        if (!clip.provenance.commercial_use || clip.provenance.synth_tool_derived) {
-            std::cerr << "  note: " << key << " is not shippable ("
-                      << (clip.provenance.synth_tool_derived ? "stub/synth-derived" : "model not commercial+redistributable")
-                      << ") — gate will block it\n";
-            blocked++;
-        }
-
-        // Key + type depend on --unit-type:
-        //  word     -> type "word",     keyed by the lowercased spoken text
-        //  syllable -> type "syllable", keyed by the CSV key (use ARPAbet, e.g.
-        //              "G EY T", to match the planner's syllable tier)
-        std::string ukey, utype;
-        if (unit_type == "syllable") {
-            ukey = key;            // caller supplies the matching key
-            utype = "syllable";
-        } else {
-            ukey = text;           // word unit keyed by what's spoken
-            for (auto& c : ukey) c = (char)std::tolower((unsigned char)c);
-            while (!ukey.empty() && ukey.front() == ' ') ukey.erase(ukey.begin());
-            while (!ukey.empty() && ukey.back() == ' ') ukey.pop_back();
-            utype = "word";
-        }
-
-        std::string rel = "units/generated/" + key + ".wav";
-        if (!first) units_json << ",\n";
-        first = false;
-        units_json << "    { \"id\": \"gen_" << json_escape(key) << "\""
-                   << ", \"type\": \"" << utype << "\", \"key\": \"" << json_escape(ukey) << "\""
-                   << ", \"emotion\": \"neutral\", \"file\": \"" << json_escape(rel) << "\""
-                   << ", \"provenance\": {"
-                   << " \"source\": \"" << json_escape(clip.provenance.source) << "\""
-                   << ", \"recorded_by\": \"" << json_escape(clip.provenance.recorded_by) << "\""
-                   << ", \"license\": \"" << json_escape(clip.provenance.license) << "\""
-                   << ", \"commercial_use\": " << (clip.provenance.commercial_use ? "true" : "false")
-                   << ", \"synth_tool_derived\": " << (clip.provenance.synth_tool_derived ? "true" : "false")
-                   << " } }";
-        n++;
-    }
-    units_json << "\n  ]\n}\n";
-
-    std::filesystem::create_directories(voice_dir + "/metadata", ec);
-    std::ofstream mf(voice_dir + "/metadata/units.json");
-    mf << units_json.str();
-
-    delete gen;
-    std::cout << "generated " << n << " units via " << gen_name
-              << " (model " << model->id << ", " << model->license << ") -> " << units_dir << "\n";
-    if (blocked)
-        std::cout << blocked << " unit(s) are NOT shippable and the ship gate will block them.\n";
-    else
-        std::cout << "all units passed provenance; bank is gate-clean.\n";
+    GenerateResult res = generate_bank(opt, [](const std::string& m){
+        std::cerr << "  " << m << "\n";
+    });
+    if (!res.ok) { std::cerr << "generate failed: " << res.error << "\n"; return 1; }
+    std::cout << res.message << "\n";
     return 0;
 }
 

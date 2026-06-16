@@ -17,6 +17,7 @@
 #include "Types.h"
 #include "ResourcePath.h"
 #include "Character.h"
+#include "BankGen.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -37,6 +38,8 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <algorithm>
+#include <fstream>
 
 using namespace voc;
 
@@ -89,6 +92,64 @@ struct Player {
 
     void shutdown() { ma_device_uninit(&device); }
 };
+
+// Scan a voices/ root for subdirectories that look like banks (have voice.json),
+// returning their names. Used to populate the bank dropdown.
+static std::vector<std::string> discover_banks() {
+    std::vector<std::string> banks;
+    std::error_code ec;
+    std::string root = voc::resource_path("voices");
+    if (!std::filesystem::is_directory(root, ec)) return banks;
+    for (auto& e : std::filesystem::directory_iterator(root, ec)) {
+        if (!e.is_directory(ec)) continue;
+        if (std::filesystem::exists(e.path() / "voice.json", ec))
+            banks.push_back(e.path().filename().string());
+    }
+    std::sort(banks.begin(), banks.end());
+    return banks;
+}
+
+// Whether a bank has whole-word units (the reliable intelligibility signal).
+// Grunt-only and demo banks lack these, so the UI can flag them honestly.
+static bool bank_has_words(const std::string& bank_name) {
+    std::error_code ec;
+    std::string root = voc::resource_path("voices");
+    auto units = std::filesystem::path(root) / bank_name / "metadata" / "units.json";
+    std::ifstream f(units);
+    if (!f) return false;
+    std::string s((std::istreambuf_iterator<char>(f)), std::istreambuf_iterator<char>());
+    return s.find("\"type\": \"word\"") != std::string::npos
+        || s.find("\"type\":\"word\"") != std::string::npos;
+}
+
+// Find the piper binary: PATH first, then a bundled .\piper\ next to the exe.
+// Returns the command to invoke (just "piper" if on PATH), or "" if not found.
+static std::string find_piper() {
+    // on PATH?
+    const char* probe =
+#if defined(_WIN32)
+        "piper --help >NUL 2>&1";
+#else
+        "piper --help >/dev/null 2>&1";
+#endif
+    if (std::system(probe) == 0) return "piper";
+
+    // bundled next to the exe?
+    std::error_code ec;
+    std::string base = voc::resource_path("piper");
+    const char* names[] = {
+#if defined(_WIN32)
+        "piper\\piper.exe", "piper.exe",
+#else
+        "piper/piper", "piper",
+#endif
+    };
+    for (const char* n : names) {
+        auto p = std::filesystem::path(base) / n;
+        if (std::filesystem::exists(p, ec)) return p.string();
+    }
+    return "";
+}
 
 int main(int argc, char** argv) {
     voc::set_exe_path(argv[0]);
@@ -157,6 +218,32 @@ int main(int argc, char** argv) {
     }
     int character_idx = 0;
 
+    // Bank dropdown — discovered word/grunt banks under voices/. Refreshed after
+    // a Generate. The selected bank is what Load opens.
+    std::vector<std::string> banks = discover_banks();
+    std::vector<std::string> bank_labels;
+    std::vector<const char*> bank_label_ptrs;
+    int bank_idx = 0;
+    auto refresh_banks = [&]() {
+        banks = discover_banks();
+        bank_labels.clear(); bank_label_ptrs.clear();
+        for (auto& b : banks)
+            bank_labels.push_back(b + (bank_has_words(b) ? "  (words)" : "  (grunts only)"));
+        for (auto& s : bank_labels) bank_label_ptrs.push_back(s.c_str());
+        if (bank_idx >= (int)banks.size()) bank_idx = 0;
+    };
+    refresh_banks();
+    // default selection to a word-capable bank if one exists
+    for (size_t i = 0; i < banks.size(); ++i)
+        if (bank_has_words(banks[i])) { bank_idx = (int)i; break; }
+
+    // Generate-voices state
+    std::string piper_cmd = find_piper();
+    char gen_bank_name[128] = "my_guards";
+    int gen_model_idx = 0;
+    const char* gen_models[] = { "piper-en_US-ljspeech", "piper-en_US-norman" };
+    std::string gen_status;
+
     bool player_ready = false;
     SynthResult last; // cached last render for export
 
@@ -200,29 +287,90 @@ int main(int argc, char** argv) {
                      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-        // --- Character: the primary control ---
-        ImGui::TextUnformatted("Character");
-        ImGui::Combo("##character", &character_idx,
-                     char_label_ptrs.data(), (int)char_label_ptrs.size());
-
-        // Load the bank the character's clips live in. Auto-load on first use so
-        // a new user doesn't have to think about banks at all.
+        // --- Voice bank: pick which bank to speak from ---
+        ImGui::TextUnformatted("Voice bank");
+        bool bank_changed = false;
+        if (!banks.empty()) {
+            bank_changed = ImGui::Combo("##bank", &bank_idx,
+                                        bank_label_ptrs.data(), (int)bank_label_ptrs.size());
+        } else {
+            ImGui::TextDisabled("(no banks found — Generate one below)");
+        }
         ImGui::SameLine();
-        if (ImGui::Button("Load") || (!engine.voice_loaded() && ImGui::GetFrameCount() == 2)) {
+        bool want_load = ImGui::Button("Load");
+        // auto-load the selected bank on first frame and whenever it changes
+        if (want_load || bank_changed ||
+            (!engine.voice_loaded() && !banks.empty() && ImGui::GetFrameCount() == 2)) {
+            std::string sel = banks.empty() ? std::string(voice_dir)
+                              : voc::resource_path("voices/" + banks[bank_idx]);
             std::string err;
-            if (engine.load_voice(voice_dir, err)) {
-                status = "Loaded bank: " + engine.voice_id() + "  — pick a character and Play.";
+            if (engine.load_voice(sel, err)) {
+                bool words = banks.empty() ? true : bank_has_words(banks[bank_idx]);
+                status = "Loaded bank: " + engine.voice_id() +
+                         (words ? "  — pick a character and Play."
+                                : "  — NOTE: grunts only. Generate a voice bank to hear words.");
                 if (!player_ready) player_ready = player.init(engine.sample_rate());
             } else {
                 status = "Load failed: " + err;
             }
         }
 
-        // Advanced: the underlying bank path (most users never touch this).
+        // --- Character ---
+        ImGui::TextUnformatted("Character");
+        ImGui::Combo("##character", &character_idx,
+                     char_label_ptrs.data(), (int)char_label_ptrs.size());
+
+        // --- Generate voices: make a word-capable bank with Piper, in-app ---
+        if (ImGui::CollapsingHeader("Generate voices (make a talking bank)")) {
+            if (piper_cmd.empty()) {
+                ImGui::TextWrapped("Piper not found. Put piper on PATH, or place it in a "
+                                   "'piper' folder next to grunt_gui.exe, then reopen. "
+                                   "(setup.bat does this for you.)");
+            } else {
+                ImGui::TextDisabled("piper: %s", piper_cmd.c_str());
+                ImGui::TextUnformatted("new bank name");
+                ImGui::InputText("##genbank", gen_bank_name, sizeof(gen_bank_name));
+                ImGui::Combo("voice model", &gen_model_idx, gen_models, IM_ARRAYSIZE(gen_models));
+                if (ImGui::Button("Generate from examples/barks.csv")) {
+                    GenerateOptions opt;
+                    opt.units_csv     = voc::resource_path("examples/barks.csv");
+                    opt.voice_dir     = voc::resource_path(std::string("voices/") + gen_bank_name);
+                    opt.model_id      = gen_models[gen_model_idx];
+                    opt.registry_path = voc::resource_path("data/voice_models.json");
+                    opt.unit_type     = "word";
+                    GenerateResult r = generate_bank(opt);
+                    if (r.ok) {
+                        gen_status = "Generated '" + std::string(gen_bank_name) + "': " + r.message;
+                        refresh_banks();
+                        // select & load the new bank
+                        for (size_t i = 0; i < banks.size(); ++i)
+                            if (banks[i] == gen_bank_name) { bank_idx = (int)i; break; }
+                        std::string err;
+                        if (engine.load_voice(opt.voice_dir, err)) {
+                            if (!player_ready) player_ready = player.init(engine.sample_rate());
+                            status = "Loaded generated bank: " + engine.voice_id();
+                        }
+                    } else {
+                        gen_status = "Generate failed: " + r.error;
+                    }
+                }
+                if (!gen_status.empty()) ImGui::TextWrapped("%s", gen_status.c_str());
+            }
+        }
+
+        // Advanced: manual bank path + emotion/style overrides.
         ImGui::Checkbox("advanced", &show_advanced);
         if (show_advanced) {
-            ImGui::TextUnformatted("Voice bank folder");
+            ImGui::TextUnformatted("Voice bank folder (manual path)");
             ImGui::InputText("##voice", voice_dir, sizeof(voice_dir));
+            ImGui::SameLine();
+            if (ImGui::Button("Load path")) {
+                std::string err;
+                if (engine.load_voice(voice_dir, err)) {
+                    status = "Loaded bank: " + engine.voice_id();
+                    if (!player_ready) player_ready = player.init(engine.sample_rate());
+                } else status = "Load failed: " + err;
+            }
             ImGui::Combo("emotion", &emotion_idx, emotions, IM_ARRAYSIZE(emotions));
             ImGui::Combo("style", &fx_idx, fxs, IM_ARRAYSIZE(fxs));
             ImGui::TextDisabled("(emotion/style apply only to the (none) character)");

@@ -171,6 +171,9 @@ Tasks:
       woman_raspy and yelling_woman stay on LJ Speech. Roster spans two timbres.
 - [x] GUI character dropdown (the eight presets; applies the recipe) + export
       creates its output dir (v0.14.0)
+- [x] GUI voice-bank dropdown (auto-discovered, flags words vs grunts-only) +
+      in-app "Generate voices" button (auto-finds Piper, bakes a word bank via
+      shared generate_bank, auto-loads it) (v0.19.0)
 - [x] PSOLA for clean repitch/retime (v0.8.0): phase-coherent time-stretch,
       pitch-shift via resample+PSOLA-restore, graceful fallback to resample on
       non-periodic clips. Completes Phase 3.
