@@ -4,6 +4,24 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.20.1] - 2026-06-16
+
+### Fixed (release workflow broke during packaging)
+- The Windows package step ran in bash, but a line I added tried to inline a
+  PowerShell command containing `$p`/`` `r`n `` to convert setup.bat to CRLF.
+  Bash expanded `$p`/`$pkg` and interpreted the backticks as command
+  substitution, mangling the command and failing the job (the binaries built
+  fine; only packaging broke). Removed it entirely — `.gitattributes`
+  (`*.bat eol=crlf`) already guarantees setup.bat is checked out with CRLF, so
+  the plain `cp` preserves it. Verified git applies `eol: crlf` to setup.bat.
+- Hardened the starter-bank bake step: it's now `continue-on-error` with
+  `set +e` and guarded downloads, so a Piper/model hiccup can never abort the
+  release — the package just ships the demo bank instead.
+
+### Note
+- The failed run was the v0.19.0 tag (immutable). This fix ships in v0.20.1;
+  push that tag for a clean Windows package build.
+
 ## [0.20.0] - 2026-06-16
 
 ### Added (easier intelligible VO: fetch-voice + a bundled talking bank)
