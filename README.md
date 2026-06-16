@@ -146,3 +146,6 @@ presets, batch bank bake, deterministic seeds, and the provenance ship gate.
 Next per the TDD: Phase 1 (real CMUdict phoneme mapper + unknown-word
 fallback), Phase 2 (syllable DB + coverage reporting), Phase 3 (diphones +
 Viterbi unit selection).
+
+See `ROADMAP.md` for full progress tracked against the TDD phases and
+acceptance criteria.

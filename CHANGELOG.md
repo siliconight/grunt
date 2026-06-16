@@ -4,6 +4,12 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.1] - 2026-06-16
+
+### Added
+- `ROADMAP.md`: feature progress tracked against the TDD phases and acceptance
+  criteria (what's done in v0.1.0/v0.2.0 vs. remaining work per phase).
+
 ## [0.2.0] - 2026-06-16
 
 ### Added
