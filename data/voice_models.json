@@ -18,7 +18,7 @@
     {
       "id": "piper-en_US-norman",
       "generator": "piper",
-      "model_file": "en_US-norman-medium.onnx",
+      "model_file": "norman.onnx",
       "license": "public-domain (model + dataset)",
       "commercial_use": true,
       "redistributable": true,
@@ -26,7 +26,7 @@
       "dataset": "LibriVox public-domain recordings (~15.5h), compiled by Bryce Beattie",
       "dataset_license": "public domain",
       "voice_traits": "US English, male, single speaker, trained from scratch (1200 epochs, medium)",
-      "notes": "Default MALE base. Same author as the LJ Speech voice; trained FROM SCRATCH on public-domain LibriVox recordings, dedicated public domain, author grants use for 'any legal and ethical purpose.' Clean transitive chain. Download .onnx + .onnx.json from source_url (file 'norman.onnx'); rename to model_file or update model_file to match. NOT legal advice — confirm before commercial release."
+      "notes": "Default MALE base. Same creator as the LJ Speech voice (Bryce Beattie); trained FROM SCRATCH on public-domain LibriVox recordings, dedicated public domain, creator grants use for 'any legal and ethical purpose.' CAVEAT: provenance here is the creator's own attestation on his personal site (not an institutional HuggingFace model card like LJ Speech) — credible and same trusted source, but a personal statement; re-confirm before commercial release. Download norman.onnx + .onnx.json from source_url. Alternatives from same source: 'John' (finetuned from Kristin — extra chain link), 'Bryce' (creator's own voice, ~750 samples)."
     }
   ]
 }
