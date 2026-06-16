@@ -4,6 +4,31 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.17.0] - 2026-06-16
+
+### Changed (Phase 3 — Viterbi unit selection replaces greedy)
+- The unit selector is now a **Viterbi lattice search**: instead of picking the
+  locally-cheapest unit per slot independently, it finds the globally min-cost
+  path through all slots, balancing per-unit **target cost** (fallback tier,
+  grunt bias, emotion match) against per-boundary **join cost**. This is the
+  standard concatenative unit-selection formulation and the biggest quality
+  lever for how stitched output flows.
+- **Join cost** (`sel::join_cost`) penalizes pitch discontinuity (~0.15/semitone
+  via the units' `pitch_center_hz`), energy discontinuity, and immediate
+  back-to-back repetition of the same clip — so the chosen sequence flows rather
+  than lurching between mismatched units.
+- Deterministic per seed (verified); one unit per slot as before; character and
+  effort paths unchanged. Tests cover the join-cost behavior (pitch/energy/
+  repetition ordering).
+
+### Note
+- Windowed anti-repetition (avoid reusing a clip within N slots, not just
+  adjacent) is deferred: carrying that history in the Viterbi DP state explodes
+  the lattice, and the immediate-repetition penalty covers the most jarring
+  case. Revisit if repetition is audible on a real bank.
+- Diphone units also deferred — they need a generate-side path that emits
+  diphone metadata first, or they'd be dead code.
+
 ## [0.16.0] - 2026-06-16
 
 ### Added (one-click Windows talking setup)

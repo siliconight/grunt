@@ -108,10 +108,14 @@ character roster depended on) is complete; diphone/Viterbi selection remains.
 - [x] Formant shift / sub-octave / rasp character DSP (v0.7.0, §6.6)
 - [x] PSOLA repitch/retime: phase-coherent time-stretch, pitch via
       resample+PSOLA-restore, graceful fallback on non-periodic audio (v0.8.0, §6.6)
-- [ ] Diphone unit support + metadata (start/end phone) (§9)
-- [ ] Join-cost scoring with spectral/pitch discontinuity (§6.5)
-- [ ] Viterbi lattice search (replace greedy selector) (§6.5)
-- [ ] Tightened anti-repetition over a window (§6.5)
+- [x] Join-cost scoring with pitch + energy discontinuity (§6.5)
+- [x] Viterbi lattice search — replaces the greedy selector with a global
+      min-cost path over (target cost + join cost) (§6.5)
+- [~] Anti-repetition: immediate back-to-back repetition penalized in join cost;
+      windowed (N-slot) anti-repetition deferred (needs history in the DP state,
+      which explodes the lattice — revisit if repetition is audible) (§6.5)
+- [ ] Diphone unit support + metadata (start/end phone) (§9) — deferred: needs a
+      generate-side path emitting diphone units first, else it's dead code
 
 ---
 

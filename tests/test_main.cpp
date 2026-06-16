@@ -365,6 +365,31 @@ void test_phase2_planner() {
     }
 }
 
+void test_join_cost() {
+    AudioUnit a; a.id = "a"; a.pitch_center_hz = 120.0; a.energy = 0.5;
+    AudioUnit b; b.id = "b"; b.pitch_center_hz = 120.0; b.energy = 0.5;
+
+    // identical pitch + energy, different id -> ~zero join cost
+    CHECK(voc::sel::join_cost(&a, &b) < 0.01, "join: matched units cost ~0");
+
+    // no predecessor (first slot) -> zero
+    CHECK(voc::sel::join_cost(nullptr, &b) == 0.0, "join: first slot is free");
+
+    // pitch jump raises cost
+    AudioUnit hi; hi.id = "c"; hi.pitch_center_hz = 240.0; hi.energy = 0.5; // +12 semis
+    CHECK(voc::sel::join_cost(&a, &hi) > voc::sel::join_cost(&a, &b),
+          "join: pitch discontinuity costs more");
+
+    // energy jump raises cost
+    AudioUnit loud; loud.id = "d"; loud.pitch_center_hz = 120.0; loud.energy = 1.0;
+    CHECK(voc::sel::join_cost(&a, &loud) > voc::sel::join_cost(&a, &b),
+          "join: energy discontinuity costs more");
+
+    // repeating the same clip id is penalized hardest
+    CHECK(voc::sel::join_cost(&a, &a) > voc::sel::join_cost(&a, &hi),
+          "join: immediate repetition penalized");
+}
+
 int main() {
     test_normalizer();
     test_syllable();
@@ -380,6 +405,7 @@ int main() {
     test_dsp();
     test_psola();
     test_phase2_planner();
+    test_join_cost();
     test_renderer_clipping();
     test_ship_gate_logic();
     std::cout << (failures == 0 ? "\nALL TESTS PASSED\n" : "\nTESTS FAILED\n");

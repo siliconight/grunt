@@ -93,6 +93,11 @@ private:
     std::mt19937_64 rng_;
 };
 
+// Selection cost functions — exposed for testing. (Defined in UnitSelector.cpp.)
+namespace sel {
+double join_cost(const AudioUnit* a, const AudioUnit* b);
+}
+
 // §6.6 — stitch with zero-crossing align + crossfade, pitch/time, limiter
 class AudioRenderer {
 public:
