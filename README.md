@@ -76,6 +76,38 @@ ends at producing named files; which event triggers which clip — and where in
 3D space — is gool/Godot wiring. `bank.json` carries build-time metadata
 (text, emotion, seed, peak) the runtime doesn't need.
 
+## How this fits your game (no build-time coupling)
+
+grunt is a standalone authoring tool. It is **not** wired into your game's
+build. You run it whenever you want; it writes `.ogg` files that sit at rest;
+you drop them into your Godot project's `res://` folder and they import like
+any other audio asset. "Pre-build" in the design doc just means the clips are
+baked ahead of time rather than synthesized during gameplay — there is no
+runtime synthesis and nothing to integrate into your game's compile.
+
+- One clip by hand:
+  `grunt synth --text "Open the gate!" --out open_gate.ogg` -> copy into Godot.
+- A whole bank from a script: `grunt batch ...` (see above).
+
+## GUI: type, hear it, export
+
+`grunt_gui` is a small desktop window: type a line, pick voice / emotion /
+style, hit **Play** to hear it (nothing written to disk), then **Export** to
+save a clip. It uses the same Engine as the CLI, so a preview sounds identical
+to what you'll bake.
+
+It's an optional target (extra dependencies), off by default. Vendor Dear ImGui
++ miniaudio and install GLFW per `third_party/README.md`, then:
+
+```
+cmake -S . -B build -DGRUNT_BUILD_GUI=ON
+cmake --build build
+./build/grunt_gui
+```
+
+The GUI deps are GUI-only and permissively licensed — they never touch the CLI
+or the baked clips.
+
 ## The ship gate (clean licensing, enforced)
 
 Every clip carries a `provenance` block in `units.json`. `verify` — and

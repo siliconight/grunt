@@ -28,6 +28,7 @@ endif()
 
 add_executable(grunt
     src/main.cpp
+    src/Engine.cpp
     src/Types.cpp
     src/TextNormalizer.cpp
     src/SyllablePlanner.cpp
@@ -67,6 +68,7 @@ endif()
 enable_testing()
 add_executable(grunt_tests
     tests/test_main.cpp
+    src/Engine.cpp
     src/Types.cpp
     src/TextNormalizer.cpp
     src/SyllablePlanner.cpp
@@ -82,3 +84,57 @@ add_executable(grunt_tests
 )
 target_include_directories(grunt_tests PRIVATE include)
 add_test(NAME grunt_tests COMMAND grunt_tests)
+
+# ---------------------------------------------------------------------------
+# Optional GUI (grunt_gui): type text, preview by ear, export a clip.
+# Off by default. Enable with -DGRUNT_BUILD_GUI=ON after vendoring deps into
+# third_party/ (Dear ImGui + GLFW backends, miniaudio.h). See README "GUI".
+# ---------------------------------------------------------------------------
+option(GRUNT_BUILD_GUI "Build the grunt GUI (needs Dear ImGui + GLFW + miniaudio)" OFF)
+
+if(GRUNT_BUILD_GUI)
+    set(IMGUI_DIR    ${CMAKE_SOURCE_DIR}/third_party/imgui)
+    set(MINIAUDIO_DIR ${CMAKE_SOURCE_DIR}/third_party/miniaudio)
+
+    find_package(glfw3 QUIET)
+    find_package(OpenGL REQUIRED)
+
+    if(NOT EXISTS ${IMGUI_DIR}/imgui.cpp)
+        message(FATAL_ERROR
+            "GRUNT_BUILD_GUI is ON but Dear ImGui was not found at ${IMGUI_DIR}. "
+            "See the GUI section of the README for vendoring instructions.")
+    endif()
+
+    add_executable(grunt_gui
+        src/gui_main.cpp
+        src/Engine.cpp
+        src/Types.cpp
+        src/TextNormalizer.cpp
+        src/SyllablePlanner.cpp
+        src/ProsodyPlanner.cpp
+        src/UnitDatabase.cpp
+        src/UnitSelector.cpp
+        src/AudioRenderer.cpp
+        src/RetroFxChain.cpp
+        src/ShipGate.cpp
+        src/Wav.cpp
+        src/AudioOut.cpp
+        src/Json.cpp
+        # Dear ImGui core + backends (vendored)
+        ${IMGUI_DIR}/imgui.cpp
+        ${IMGUI_DIR}/imgui_draw.cpp
+        ${IMGUI_DIR}/imgui_tables.cpp
+        ${IMGUI_DIR}/imgui_widgets.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_glfw.cpp
+        ${IMGUI_DIR}/backends/imgui_impl_opengl3.cpp
+    )
+    target_include_directories(grunt_gui PRIVATE
+        include ${IMGUI_DIR} ${IMGUI_DIR}/backends ${MINIAUDIO_DIR})
+    target_link_libraries(grunt_gui PRIVATE glfw OpenGL::GL)
+
+    if(OGG_LIB AND VORBIS_LIB AND VORBISENC_LIB AND VORBIS_INCLUDE)
+        target_compile_definitions(grunt_gui PRIVATE GRUNT_HAVE_VORBIS)
+        target_include_directories(grunt_gui PRIVATE ${VORBIS_INCLUDE})
+        target_link_libraries(grunt_gui PRIVATE ${VORBISENC_LIB} ${VORBIS_LIB} ${OGG_LIB})
+    endif()
+endif()

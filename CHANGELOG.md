@@ -4,6 +4,27 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.0] - 2026-06-16
+
+### Added
+- `Engine` class: a single reusable synthesis facade. The CLI and GUI both call
+  it, so there is one synthesis path that can't drift. `synth_line` orchestration
+  moved out of `main.cpp`.
+- `grunt_gui`: optional Dear ImGui desktop front end. Type a line, pick voice /
+  emotion / style, **Play** to preview by ear (real-time via miniaudio, no temp
+  files), **Export** to save an OGG/Vorbis or WAV clip. Off by default; enable
+  with `-DGRUNT_BUILD_GUI=ON` after vendoring deps (see `third_party/README.md`).
+- README: explicit "no build-time coupling" section clarifying grunt is a
+  standalone at-rest authoring tool, plus a GUI section.
+
+### Changed
+- `batch` and `synth` now render through `Engine` instead of the inline helper.
+
+### Notes
+- GUI glue is syntax-checked against the Engine/AudioOut API in CI's scope, but
+  the full Dear ImGui / GLFW / miniaudio binding is validated only when built
+  against the vendored libraries.
+
 ## [0.1.0] - 2026-06-16
 
 First scaffold — Phase 0 (grunt-vocalizer mode) of the TDD. A build-time CLI

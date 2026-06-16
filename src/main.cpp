@@ -8,6 +8,7 @@
 #include "Wav.h"
 #include "ShipGate.h"
 #include "AudioOut.h"
+#include "Engine.h"
 
 #include <iostream>
 #include <fstream>
@@ -45,34 +46,7 @@ Args parse_args(int argc, char** argv, int start) {
     return a;
 }
 
-// run the full pipeline for one line; returns rendered+FX'd buffer + stats
-struct RenderStats { double peak_dbfs = 0; int units = 0; };
-
-bool synth_line(const std::string& text, UnitDatabase& db,
-                Emotion emotion, const std::string& fx,
-                uint64_t seed, AudioBuffer& out, RenderStats& stats,
-                std::string& err) {
-    TextNormalizer norm;
-    SyllablePlanner syl;
-    ProsodyPlanner pros;
-    UnitSelector sel(seed);
-    AudioRenderer rend;
-    RetroFxChain fxchain;
-
-    NormalizedText nt = norm.normalize(text);
-    if (db.all().empty()) { err = "empty bank"; return false; }
-
-    UnitPlan up = syl.plan(nt);
-    if (emotion != Emotion::Neutral) up.emotion = emotion; // CLI override
-    ProsodyPlan pp = pros.plan(up);
-    auto selected = sel.select(pp, db);
-    stats.units = (int)selected.size();
-
-    out = rend.render(selected, db);
-    fxchain.apply(out, fx);
-    stats.peak_dbfs = out.peak_dbfs();
-    return true;
-}
+// All synthesis goes through the shared Engine (one pipeline, no drift).
 
 std::string json_escape(const std::string& s) {
     std::string o;
@@ -110,8 +84,7 @@ int cmd_synth(int argc, char** argv) {
                      "  default format: ogg (Vorbis). out extension is set to match the format.\n";
         return 2;
     }
-    UnitDatabase db; std::string err;
-    if (!db.load(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
+    std::string err;
 
     Emotion emo = a.has("emotion") ? emotion_from_string(a.get("emotion")) : Emotion::Neutral;
     std::string fx = a.get("style", "clean_ps1");
@@ -126,10 +99,11 @@ int cmd_synth(int argc, char** argv) {
         return 1;
     }
 
-    AudioBuffer buf; RenderStats st;
-    if (!synth_line(a.get("text"), db, emo, fx, seed, buf, st, err)) {
-        std::cerr << "synth failed: " << err << "\n"; return 1;
-    }
+    Engine engine;
+    if (!engine.load_voice(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
+    SynthResult res = engine.synth(a.get("text"), emo, fx, seed);
+    if (!res.ok) { std::cerr << "synth failed: " << res.error << "\n"; return 1; }
+    AudioBuffer& buf = res.audio;
 
     // force the output path's extension to match the chosen format
     std::string out = a.get("out");
@@ -145,8 +119,8 @@ int cmd_synth(int argc, char** argv) {
     if (!write_audio(out, buf, fmt, q, err)) { std::cerr << "write failed: " << err << "\n"; return 1; }
 
     std::cout << "wrote " << out
-              << "  units=" << st.units
-              << "  peak=" << st.peak_dbfs << " dBFS\n";
+              << "  units=" << res.units
+              << "  peak=" << res.peak_dbfs << " dBFS\n";
     return 0;
 }
 
@@ -172,11 +146,11 @@ int cmd_batch(int argc, char** argv) {
                      "  default format: ogg (Vorbis).\n";
         return 2;
     }
-    UnitDatabase db; std::string err;
-    if (!db.load(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
+    Engine engine; std::string err;
+    if (!engine.load_voice(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
 
     // gate before producing anything (TDD §22)
-    GateResult gate = verify_bank(db);
+    GateResult gate = verify_bank(engine.db());
     if (!gate.passed) {
         std::cerr << "ship gate FAILED — refusing to bake bank:\n";
         for (const auto& f : gate.failures) std::cerr << "  REJECT " << f << "\n";
@@ -204,7 +178,7 @@ int cmd_batch(int argc, char** argv) {
     if (ec) { std::cerr << "cannot create out-dir " << out_dir << ": " << ec.message() << "\n"; return 1; }
 
     std::ostringstream manifest;
-    manifest << "{\n  \"bank_id\": \"" << json_escape(db.voice_id()) << "_vo\",\n"
+    manifest << "{\n  \"bank_id\": \"" << json_escape(engine.voice_id()) << "_vo\",\n"
              << "  \"schema_version\": 1,\n  \"clips\": [\n";
 
     std::string line; bool first = true; int n = 0; bool header_skipped = false;
@@ -224,10 +198,11 @@ int cmd_batch(int argc, char** argv) {
         uint64_t cseed = seed;
         for (char c : name) cseed = cseed * 1099511628211ULL + (unsigned char)c;
 
-        AudioBuffer buf; RenderStats st;
-        if (!synth_line(text, db, emo, clip_fx, cseed, buf, st, err)) {
-            std::cerr << "  skip " << name << ": " << err << "\n"; continue;
+        SynthResult res = engine.synth(text, emo, clip_fx, cseed);
+        if (!res.ok) {
+            std::cerr << "  skip " << name << ": " << res.error << "\n"; continue;
         }
+        AudioBuffer& buf = res.audio;
         std::string rel = name + "." + ext;
         std::string path = out_dir + "/" + rel;
         if (!write_audio(path, buf, fmt, q, err)) { std::cerr << "  write fail " << name << ": " << err << "\n"; continue; }
@@ -237,13 +212,13 @@ int cmd_batch(int argc, char** argv) {
         int dur_ms = (int)(buf.samples.size() * 1000.0 / buf.sample_rate);
         manifest << "    { \"name\": \"" << json_escape(name) << "\""
                  << ", \"file\": \"" << json_escape(rel) << "\""
-                 << ", \"voice_id\": \"" << json_escape(db.voice_id()) << "\""
+                 << ", \"voice_id\": \"" << json_escape(engine.voice_id()) << "\""
                  << ", \"text\": \"" << json_escape(text) << "\""
                  << ", \"emotion\": \"" << emotion_to_string(emo) << "\""
                  << ", \"fx_preset\": \"" << json_escape(clip_fx) << "\""
                  << ", \"duration_ms\": " << dur_ms
                  << ", \"sample_rate\": " << buf.sample_rate
-                 << ", \"peak_dbfs\": " << st.peak_dbfs
+                 << ", \"peak_dbfs\": " << res.peak_dbfs
                  << ", \"seed\": " << cseed << " }";
         n++;
     }
