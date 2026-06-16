@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.1] - 2026-06-16
+
+### Changed
+- Repositioned around grunt's actual purpose: an accessibility tool that lets
+  devs with no studio/mic/VO budget type text and get legally-yours, game-ready
+  Vorbis OGG voice clips. README intro now leads with that promise and the
+  "fill the blanks, don't chase realism" philosophy; `generate` is framed as the
+  headline path.
+- ROADMAP gains a "North star" section — four checks every future feature is
+  measured against (lowers the barrier? stays airtight? serves decent-and-
+  characterful over realistic? stays offline/at-rest/Godot-friendly?).
+
 ## [0.4.0] - 2026-06-16
 
 ### Added (generative voice banks — no recording required)

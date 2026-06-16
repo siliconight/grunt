@@ -4,7 +4,34 @@ Progress against the TDD (`vocalizer_tdd.md`). This tracks *remaining* work by
 phase; shipped detail lives in `CHANGELOG.md`. Status keys:
 **[x] done · [~] partial · [ ] not started**
 
-Current version: **v0.2.0**
+Current version: **v0.4.0**
+
+---
+
+## North star — what every roadmap decision is checked against
+
+grunt's reason to exist: **a dev with no studio, no mic, and no VO budget can
+type text and get legally-yours, game-ready voice clips.** Realism is not the
+goal — legibility and feel are. We fill the "everything else" (barks, grunts,
+reactions, efforts) so real voice acting can be reserved for key story lines.
+
+Before adding or prioritizing a feature, check it against these:
+
+1. **Does it lower the barrier, or raise it?** Anything that requires a studio,
+   a mic, paid assets, or audio expertise to benefit from is suspect. The
+   generate-from-text path is the main path; recording is the optional one.
+2. **Is the output still legally airtight?** Every clip must stay shippable by
+   construction (registry + ship gate). A feature that introduces unclear
+   rights doesn't ship until the gate can enforce it.
+3. **Does it serve "decent and characterful," not "realistic"?** Effort spent
+   chasing human-fidelity is usually better spent on legibility, variety, and
+   the retro identity that makes synthetic output feel intentional.
+4. **Does it stay offline, at-rest, and Godot-friendly?** No cloud, no runtime
+   synthesis, output is Vorbis OGG files that import like any other asset.
+
+A feature can be technically impressive and still be wrong for grunt if it
+fails these. When in doubt, optimize for the soloist filling blanks in a fun
+game — not the studio chasing fidelity.
 
 ---
 
@@ -26,6 +53,10 @@ Current version: **v0.2.0**
 ### Bonus (beyond TDD Phase 0)
 - [x] `Engine` facade — one synthesis path for CLI + GUI (v0.2.0)
 - [x] `grunt_gui` — type / preview-by-ear / export (v0.2.0)
+- [x] **`generate` — the headline path: build banks from a license-cleared open
+  TTS model, no recording. Registry + ship gate keep it airtight. (v0.4.0)**
+  This is now grunt's primary workflow per the north star; the rest of the
+  roadmap exists to make its output sound better, not to replace it.
 
 ---
 

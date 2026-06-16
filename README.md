@@ -5,17 +5,36 @@
 <h1 align="center">grunt</h1>
 
 <p align="center">
-  A standalone CLI that turns short game text into named PS1-style vocal clips
-  from <strong>owned</strong> voice banks, and bakes a reproducible sound bank
-  that Godot/gool imports and plays at runtime by name.
+  <strong>Type text, get usable game VO.</strong> No studio, no microphone,
+  no voice actor, no licensing risk — just legally-yours, game-ready voice
+  clips in compressed Vorbis OGG, ready to drop into Godot.
 </p>
 
-This is **Phase 0** (grunt-vocalizer mode): text drives timing and emotion;
-output is stylized syllables and grunts stitched from recorded units, run
-through a PS1-style FX chain. No neural TTS, no cloud, no runtime synthesis.
+grunt exists to remove a barrier most solo and small-team devs hit: a game
+needs hundreds of barks, grunts, reactions, and effort sounds, but you have no
+booth, no mic, no VO budget, and no rights-cleared way to fill them. The usual
+outcomes are shipping silence, misusing a sample pack, or burning a tiny budget
+on a handful of lines. grunt gives you a fourth option — type the line, get a
+clip that's stylized, characterful, and **yours to ship**.
+
+**The philosophy:** game audio has overindexed on realism. But players don't
+experience realism — they experience legibility and feel. Animal Crossing's
+gibberish, Undertale's blips, the original creature grunts of early 3D games:
+none of it is realistic, and all of it is more memorable than most photoreal
+VO. The blank a game actually needs filled isn't "a human said this line" — it's
+"the player understood the enemy is angry and there's something over there."
+grunt fills *that* blank. Reserve real voice acting for the key story moments;
+let grunt handle the everything-else.
+
+It does this two ways: **generate** banks from a license-cleared open TTS model
+(no recording at all — the main path), or stitch your own recorded units. Either
+way, output runs through a PS1-style FX chain that turns "slightly synthetic"
+into "intentionally retro," and a ship gate guarantees nothing un-owned can ever
+leave the building. No cloud, no runtime synthesis — grunt bakes files at rest
+that import into Godot like any other audio asset.
 
 See `vocalizer_tdd.md` (the design doc) for the full architecture, and
-`ROADMAP.md` for progress against it.
+`ROADMAP.md` for progress and the principle that guides it.
 
 ## Build
 
