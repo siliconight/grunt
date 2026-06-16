@@ -115,6 +115,43 @@ cmake --build build
 The GUI deps are GUI-only and permissively licensed — they never touch the CLI
 or the baked clips.
 
+## Generating voice banks with CC0 / open generators (no recording)
+
+For the "everything else" bark/effort/reaction layer, grunt can build voice
+banks from a license-cleared open TTS generator instead of recordings — so you
+reserve real VO for key story lines only.
+
+```
+grunt generate --units units.csv --voice voices/orc --model <cleared-model-id>
+```
+
+`units.csv` rows are `key,text` (e.g. `ge,gah`). grunt synthesizes each unit,
+writes it into the bank, and stamps each clip's provenance from the model's
+license. grunt then concatenates these units like any other bank.
+
+**Why this is legally airtight, by construction:**
+
+- grunt only generates from models listed in `data/voice_models.json` — a
+  registry where each entry is license diligence done *once* (CC0 / Apache,
+  commercial + redistributable confirmed). Diligence becomes data, then the
+  gate enforces it forever.
+- The generator binary (Piper, etc.) is a **build-time tool** — grunt shells
+  out to it and never links it. Only the rendered audio ships, and that audio's
+  rights come from the model's license.
+- The **ship gate** refuses to bake any clip whose model isn't
+  commercial+redistributable. A CC0-model clip passes; a non-commercial or
+  unverified one is blocked before it can reach a shipped bank.
+
+**Recommended generator: Piper** (MIT engine) with a **CC0 voice model** —
+runs offline on CPU, and its slightly-synthetic output is masked by grunt's
+PS1 FX chain. The included `--generator stub` produces deterministic test tones
+that are *always* gate-blocked (marked synth-derived), so you can exercise the
+whole pipeline offline without installing Piper.
+
+> Not legal advice. Voice-model licenses vary — including transitively through
+> training data. Confirm each model (and its dataset) before adding it to the
+> registry; the gate then keeps you honest.
+
 ## The ship gate (clean licensing, enforced)
 
 Every clip carries a `provenance` block in `units.json`. `verify` — and

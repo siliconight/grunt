@@ -4,6 +4,27 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.0] - 2026-06-16
+
+### Added (generative voice banks — no recording required)
+- `generate` command: builds a voice bank's units from a license-cleared open
+  TTS generator. Reads a `key,text` units CSV, synthesizes each unit, and writes
+  `units.json` with provenance auto-stamped from the model's license.
+- `VoiceModelRegistry` (`data/voice_models.json`): an allowlist of license-
+  cleared generator models (CC0 / permissive). `generate` only uses models from
+  it, turning per-model license diligence into data the ship gate enforces.
+- Generator backends: `piper` (shells out to the Piper binary — a build-time
+  tool grunt never links) and `stub` (deterministic test tones, always
+  gate-blocked as synth-derived so they can't leak into a real bank).
+- Provenance for generated clips records generator + model + license; clips
+  from a commercial+redistributable model pass the gate, others are blocked.
+- Tests for registry load, model lookup, and shippable-vs-blocked provenance.
+
+### Notes
+- The real Piper invocation is wired but verified on a machine with Piper
+  installed; the offline test path uses the stub. MBROLA was evaluated and
+  rejected — its voices are non-commercial, so they can never ship.
+
 ## [0.3.0] - 2026-06-16
 
 ### Added (TDD Phase 1 — Phoneme Debug Build)

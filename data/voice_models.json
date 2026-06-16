@@ -1,0 +1,16 @@
+{
+  "schema_version": 1,
+  "_comment": "Allowlist of license-cleared generator voice models. `generate` only uses models listed here unless --allow-unverified is passed. Each entry is diligence done ONCE, then enforced forever by the ship gate. Adding a model means you have read its license (and, for trained models, its training-data license) and confirmed commercial + redistributable rights.",
+  "models": [
+    {
+      "id": "piper-en_US-cc0-example",
+      "generator": "piper",
+      "model_file": "en_US-cc0-example-medium.onnx",
+      "license": "CC0-1.0",
+      "commercial_use": true,
+      "redistributable": true,
+      "source_url": "https://huggingface.co/<cc0-voice>",
+      "notes": "PLACEHOLDER — replace with a real verified CC0 Piper voice. CC0 voices exist (public-domain dedication, no strings). Confirm the MODEL_CARD says CC0 and the training dataset is also unrestricted before shipping."
+    }
+  ]
+}

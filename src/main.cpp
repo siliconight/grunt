@@ -9,6 +9,7 @@
 #include "ShipGate.h"
 #include "AudioOut.h"
 #include "Engine.h"
+#include "Generator.h"
 
 #include <iostream>
 #include <fstream>
@@ -278,14 +279,109 @@ int cmd_phonemes(int argc, char** argv) {
     return 0;
 }
 
+// generate — build a voice bank's units from a CC0/permissive TTS generator.
+// Reads a units CSV (key,text), synthesizes each unit, writes clips +
+// units.json with provenance stamped from the registry-cleared model.
+int cmd_generate(int argc, char** argv) {
+    Args a = parse_args(argc, argv, 2);
+    if (!a.has("units") || !a.has("voice") || !a.has("model")) {
+        std::cerr << "usage: grunt generate --units <units.csv> --voice <dir> --model <model-id>\n"
+                     "  [--generator piper|stub] [--registry data/voice_models.json]\n"
+                     "  units.csv rows: key,text  (e.g.  ge,gah)\n"
+                     "  --model must be a license-cleared id from the registry.\n";
+        return 2;
+    }
+    std::string registry_path = a.get("registry", "data/voice_models.json");
+    VoiceModelRegistry reg; std::string err;
+    if (!reg.load(registry_path, err)) { std::cerr << "registry: " << err << "\n"; return 1; }
+
+    const VoiceModel* model = reg.find(a.get("model"));
+    if (!model) {
+        std::cerr << "model '" << a.get("model") << "' not found in registry " << registry_path << "\n"
+                  << "available cleared models:\n";
+        for (const auto& m : reg.all())
+            std::cerr << "  " << m.id << "  (" << m.license << ", "
+                      << (m.commercial_use && m.redistributable ? "shippable" : "NOT shippable") << ")\n";
+        return 1;
+    }
+
+    std::string gen_name = a.get("generator", model->generator);
+    Generator* gen = make_generator(gen_name);
+    if (!gen) { std::cerr << "unknown generator: " << gen_name << "\n"; return 1; }
+
+    std::string voice_dir = a.get("voice");
+    std::string units_dir = voice_dir + "/units/generated";
+    std::error_code ec;
+    std::filesystem::create_directories(units_dir, ec);
+    if (ec) { std::cerr << "cannot create " << units_dir << ": " << ec.message() << "\n"; delete gen; return 1; }
+
+    std::ifstream csv(a.get("units"));
+    if (!csv) { std::cerr << "cannot open units csv: " << a.get("units") << "\n"; delete gen; return 1; }
+
+    std::ostringstream units_json;
+    units_json << "{\n  \"units\": [\n";
+
+    std::string line; bool first = true; int n = 0, blocked = 0; bool hdr = false;
+    while (std::getline(csv, line)) {
+        if (line.empty()) continue;
+        std::vector<std::string> f; std::stringstream ss(line); std::string cell;
+        while (std::getline(ss, cell, ',')) f.push_back(cell);
+        if (f.size() < 2) continue;
+        if (!hdr && f[0] == "key") { hdr = true; continue; }
+        hdr = true;
+
+        std::string key = f[0], text = f[1];
+        GeneratedClip clip = gen->generate(key, text, *model, units_dir);
+        if (!clip.ok) { std::cerr << "  skip " << key << ": " << clip.error << "\n"; continue; }
+
+        // honest provenance: warn if this clip won't pass the gate
+        if (!clip.provenance.commercial_use || clip.provenance.synth_tool_derived) {
+            std::cerr << "  note: " << key << " is not shippable ("
+                      << (clip.provenance.synth_tool_derived ? "stub/synth-derived" : "model not commercial+redistributable")
+                      << ") — gate will block it\n";
+            blocked++;
+        }
+
+        std::string rel = "units/generated/" + key + ".wav";
+        if (!first) units_json << ",\n";
+        first = false;
+        units_json << "    { \"id\": \"gen_" << json_escape(key) << "\""
+                   << ", \"type\": \"syllable\", \"key\": \"" << json_escape(key) << "\""
+                   << ", \"emotion\": \"neutral\", \"file\": \"" << json_escape(rel) << "\""
+                   << ", \"provenance\": {"
+                   << " \"source\": \"" << json_escape(clip.provenance.source) << "\""
+                   << ", \"recorded_by\": \"" << json_escape(clip.provenance.recorded_by) << "\""
+                   << ", \"license\": \"" << json_escape(clip.provenance.license) << "\""
+                   << ", \"commercial_use\": " << (clip.provenance.commercial_use ? "true" : "false")
+                   << ", \"synth_tool_derived\": " << (clip.provenance.synth_tool_derived ? "true" : "false")
+                   << " } }";
+        n++;
+    }
+    units_json << "\n  ]\n}\n";
+
+    std::filesystem::create_directories(voice_dir + "/metadata", ec);
+    std::ofstream mf(voice_dir + "/metadata/units.json");
+    mf << units_json.str();
+
+    delete gen;
+    std::cout << "generated " << n << " units via " << gen_name
+              << " (model " << model->id << ", " << model->license << ") -> " << units_dir << "\n";
+    if (blocked)
+        std::cout << blocked << " unit(s) are NOT shippable and the ship gate will block them.\n";
+    else
+        std::cout << "all units passed provenance; bank is gate-clean.\n";
+    return 0;
+}
+
 void usage() {
     std::cout <<
-    "grunt — PS1-style game vocalizer (Phase 0)\n\n"
+    "grunt — PS1-style game vocalizer\n\n"
     "commands:\n"
-    "  synth     render one line to a WAV\n"
+    "  synth     render one line to a clip (OGG/Vorbis default)\n"
     "  batch     bake a folder of named clips + bank.json from a CSV\n"
+    "  generate  build a bank's units from a CC0/permissive TTS generator\n"
     "  verify    run the provenance ship gate on a voice bank\n"
-    "  phonemes  show the grunt-mode unit plan for a line (debug)\n\n"
+    "  phonemes  convert text to ARPAbet phonemes (--dict for CMUdict)\n\n"
     "run a command with no args for its usage.\n";
 }
 
@@ -296,6 +392,7 @@ int main(int argc, char** argv) {
     std::string cmd = argv[1];
     if (cmd == "synth")    return cmd_synth(argc, argv);
     if (cmd == "batch")    return cmd_batch(argc, argv);
+    if (cmd == "generate") return cmd_generate(argc, argv);
     if (cmd == "verify")   return cmd_verify(argc, argv);
     if (cmd == "phonemes") return cmd_phonemes(argc, argv);
     if (cmd == "-h" || cmd == "--help" || cmd == "help") { usage(); return 0; }
