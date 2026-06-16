@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.18.2] - 2026-06-16
+
+### Fixed (setup.bat parse error — closed instantly with no output)
+- A literal `(.json)` in an echo *inside* an `if (...)` block prematurely
+  closed the block. cmd.exe parses the whole file before running, so this was a
+  fatal parse error: the window opened and closed instantly, before any step or
+  pause — exactly the "closed again, no success message" symptom.
+- Removed parentheses from all echoed text (cmd treats them as block
+  delimiters), and collapsed a fragile caret line-continuation in an echo.
+- Verified the if/else block structure is balanced. The window now reaches its
+  pause and shows SUCCESS or the failed `[X]` step.
+
 ## [0.18.1] - 2026-06-16
 
 ### Fixed (setup.bat usability)

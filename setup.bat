@@ -69,11 +69,11 @@ set "MODEL_BASE=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en
 if exist "%MODEL%" (
   echo [ok] Voice model already present: %MODEL%
 ) else (
-  echo [2/6] Downloading voice model (LJ Speech, public domain)...
+  echo [2/6] Downloading voice model - LJ Speech, public domain...
   powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%?download=true' -OutFile '%MODEL%' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
   if errorlevel 1 ( echo [X] Could not download the voice model. & goto :fail )
   powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%.json?download=true' -OutFile '%MODEL%.json' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
-  if errorlevel 1 ( echo [X] Could not download the model config (.json). & goto :fail )
+  if errorlevel 1 ( echo [X] Could not download the model config json. & goto :fail )
 )
 if not exist "%MODEL%"      ( echo [X] model file missing after download. & goto :fail )
 if not exist "%MODEL%.json" ( echo [X] model .json missing after download. & goto :fail )
@@ -110,17 +110,16 @@ echo(
 echo ============================================
 echo   SUCCESS - you have a real talking bank.
 echo ============================================
-echo Playing first_word.ogg (an orc saying "intruder")...
+echo Playing first_word.ogg - an orc saying intruder...
 start "" "first_word.ogg"
 echo(
 echo From here:
 echo   GUI: run grunt_gui.exe, open "advanced", point the bank at
 echo        voices\my_guards, then pick a character from the dropdown.
-echo   CLI: grunt synth --text "your line" --character orc ^
-echo        --voice voices\my_guards --out line.ogg
+echo   CLI: grunt synth --text "your line" --character orc --voice voices\my_guards --out line.ogg
 echo   Edit examples\barks.csv to add your own lines, then re-run this.
 echo(
-echo NOTE: the bundled demo bank (heavy_brother) is grunt-only by design, so
+echo NOTE: the bundled demo bank heavy_brother is grunt-only by design, so
 echo       it sounds like grunts. voices\my_guards is your REAL words bank -
 echo       point the GUI at it to hear speech.
 echo(
@@ -134,7 +133,7 @@ echo ============================================
 echo The step marked [X] above is what failed. Fixes:
 echo   - check your internet connection and re-run setup.bat
 echo   - or see SETUP.md for the manual steps
-echo   - you can always hear the (grunt-only) demo: grunt.exe quickstart
+echo   - you can always hear the grunt-only demo: grunt.exe quickstart
 echo(
 echo This window will stay open. Press any key to close it.
 pause >nul
