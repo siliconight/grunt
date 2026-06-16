@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "_comment": "Character presets for grunt TTS mode. A preset is a recipe over the pipeline: pick a character by name and grunt applies base_voice + pitch + fx_preset + emotion_bias (+ formant/sub when the renderer supports them). base_voice is a model id from voice_models.json. Presets sharing a base_voice differ only in pitch/FX/prosody. Fields marked 'planned' (formant_shift, sub_layer, rasp) await renderer DSP — see ROADMAP Phase 3; until then they're ignored, so those characters render as a reasonable approximation rather than failing.",
+  "characters": [
+    {
+      "id": "grunt",
+      "display_name": "Grunt (gruff low male)",
+      "base_voice": "piper-en_US-cc0-example",
+      "pitch_offset_st": -3.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "neutral",
+      "ready": true
+    },
+    {
+      "id": "robot",
+      "display_name": "Robot",
+      "base_voice": "piper-en_US-cc0-example",
+      "pitch_offset_st": 0.0,
+      "fx_preset": "robot_ps1",
+      "emotion_bias": "neutral",
+      "ready": true
+    },
+    {
+      "id": "yelling_woman",
+      "display_name": "Yelling Woman",
+      "base_voice": "piper-en_US-cc0-female-example",
+      "pitch_offset_st": 2.0,
+      "fx_preset": "radio_ps1",
+      "emotion_bias": "angry",
+      "gain_db": 3.0,
+      "ready": true
+    },
+    {
+      "id": "yelling_man",
+      "display_name": "Yelling Man (Wilhelm)",
+      "base_voice": "piper-en_US-cc0-example",
+      "pitch_offset_st": 0.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "angry",
+      "gain_db": 3.0,
+      "ready": true
+    },
+    {
+      "id": "deep_big",
+      "display_name": "Deep Big (very low gruff male)",
+      "base_voice": "piper-en_US-cc0-example",
+      "pitch_offset_st": -7.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "neutral",
+      "sub_layer": true,
+      "ready": false,
+      "_blocked_on": "sub-octave layering DSP (Phase 3)"
+    },
+    {
+      "id": "woman_raspy",
+      "display_name": "Woman (raspy)",
+      "base_voice": "piper-en_US-cc0-female-example",
+      "pitch_offset_st": 0.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "neutral",
+      "rasp": true,
+      "ready": false,
+      "_blocked_on": "rasp DSP (saturation + bandpass shaping, Phase 3)"
+    },
+    {
+      "id": "orc",
+      "display_name": "Orc (barky monster)",
+      "base_voice": "piper-en_US-cc0-example",
+      "pitch_offset_st": -4.0,
+      "fx_preset": "monster_ps1",
+      "emotion_bias": "angry",
+      "formant_shift": -0.2,
+      "ready": false,
+      "_blocked_on": "formant shifting DSP (Phase 3)"
+    },
+    {
+      "id": "demon",
+      "display_name": "Demon",
+      "base_voice": "piper-en_US-cc0-example",
+      "pitch_offset_st": -9.0,
+      "fx_preset": "monster_ps1",
+      "emotion_bias": "angry",
+      "formant_shift": -0.3,
+      "sub_layer": true,
+      "ready": false,
+      "_blocked_on": "formant shifting + sub-octave layering (Phase 3)"
+    }
+  ]
+}

@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.4.2] - 2026-06-16
+
+### Added
+- Character presets: `data/characters.json` defines named, out-of-the-box
+  voices for TTS mode (Grunt, Deep Big, Woman/raspy, Orc, Robot, Demon, Yelling
+  Woman, Yelling Man/Wilhelm). A preset is a recipe over the pipeline (base
+  voice + pitch + FX + prosody, plus planned formant/sub/rasp), so most layer
+  over a few shared base voices. ROADMAP gains a Character Presets section with
+  an honest split: four are achievable with existing FX/pitch (Grunt, Robot,
+  Yelling Woman, Yelling Man); four await Phase 3 renderer DSP (Deep Big, Woman
+  raspy, Orc, Demon). Loader/`--character` flag/GUI dropdown are planned.
+
 ## [0.4.1] - 2026-06-16
 
 ### Changed

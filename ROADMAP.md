@@ -100,6 +100,52 @@ Goal: improve intelligibility via diphone units + real unit selection.
 
 ---
 
+## Character Presets — out-of-the-box voices for TTS mode  — [ ] PLANNED
+
+The headline UX: a user types a line, **picks a character by name**, and gets a
+clip in that character's voice. Presets are *recipes over the pipeline* — a
+named bundle of (base TTS voice + pitch + FX preset + prosody bias + character
+DSP), defined in `data/characters.json` so they're editable without
+recompiling. Most characters layer over a few shared, license-cleared base TTS
+voices; a few need their own. The GUI gets a character dropdown.
+
+A preset names: `base_voice` (a registry model id), `pitch_offset_st`,
+`fx_preset`, `emotion_bias`, and (later) `formant_shift` / `sub_layer`.
+
+Out-of-the-box character set (target):
+
+| Character | Base voice | Pitch | FX | Notes | Ready when |
+|---|---|---|---|---|---|
+| **Grunt** (gruff low male) | male | low | clean_ps1 + light sat | the default everyman | now-ish |
+| **Deep Big** (very low gruff male) | male (shared w/ Grunt) | very low | clean_ps1 + chest sat | big-character voice | needs deeper pitch + sub |
+| **Woman (raspy)** | female | mid | clean_ps1 + rasp (sat+bandpass) | raspy character | needs rasp DSP |
+| **Orc** (barky monster) | male or neutral | low | monster_ps1 | heavy formant, syllable abstraction | needs formant shift |
+| **Robot** | any | flat | robot_ps1 | formant + heavy bitcrush | now-ish (FX exists) |
+| **Demon** | male (shared) | very low | monster_ps1 + sub layer | pitch-stacked, sub-octave | needs sub-layer + formant |
+| **Yelling Woman** | female (shared) | mid-high | clean/radio + hot gain | urgent/angry prosody, clip-sat | now-ish |
+| **Yelling Man** (Wilhelm) | male (shared) | mid | clean + hot gain | max-intensity prosody scream | now-ish |
+
+Honest dependency split:
+
+- **Achievable now** (pitch + existing FX + prosody bias only): Grunt, Robot,
+  Yelling Woman, Yelling Man. These can ship as soon as the preset loader +
+  two clean base voices exist.
+- **Needs new renderer DSP** (Phase 3 work — formant shifting, sub-octave
+  layering, rasp): Deep Big, Woman (raspy), Orc, Demon. These improve as the
+  renderer gains formant/sub capability.
+
+Tasks:
+- [ ] `CharacterPreset` type + `data/characters.json` loader (user-editable)
+- [ ] `--character <name>` flag on `synth` / `generate`; applies the recipe
+- [ ] 2–3 license-cleared base voices in the registry (male, female, neutral)
+- [ ] Ship the "achievable now" four presets
+- [ ] GUI character dropdown (preview by ear per character)
+- [ ] Renderer DSP for the rest: formant shift, sub-octave layer, rasp (ties
+      to Phase 3) — then ship the remaining four
+- [ ] Each preset checked against the north star (lowers barrier, stays airtight)
+
+---
+
 ## Phase 4 — Game Pipeline Integration  (TDD §18 Phase 4)  — [~] PARTIAL
 
 Goal: usable by designers; clean handoff to gool.
