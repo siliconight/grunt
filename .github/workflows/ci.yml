@@ -1,4 +1,6 @@
-name: ci
+name: grunt CI
+run-name: >-
+  grunt CI ${{ github.ref_type == 'tag' && github.ref_name || format('main-{0}', github.sha) }}
 
 on:
   push:
@@ -8,8 +10,7 @@ on:
     branches: [main]
 
 jobs:
-  # Resolve the version being built once, share it with every downstream job.
-  # On a tag push -> the tag (v0.2.2). On a branch/PR -> describe/short-sha.
+  # Resolve the version once, share with every downstream job.
   version:
     runs-on: ubuntu-latest
     outputs:
@@ -28,41 +29,66 @@ jobs:
             VER="$(git describe --tags --always 2>/dev/null || echo dev)"
           fi
           echo "version=$VER" >> "$GITHUB_OUTPUT"
-          echo "Building grunt $VER"
+          echo "grunt version: $VER"
 
-  # Lesson from gool: static reading is not verification. CI builds with the
-  # real toolchain + real libvorbis, runs tests, and a smoke bake.
-  linux:
+  # build — compile CLI + tests with real libvorbis on Linux and Windows.
+  # Lesson from gool: build with the real toolchain, not -fsyntax-only.
+  build:
     needs: version
-    name: "linux (${{ needs.version.outputs.version }})"
-    runs-on: ubuntu-latest
-    env:
-      GRUNT_VERSION: ${{ needs.version.outputs.version }}
+    name: "build ${{ matrix.os }} (${{ needs.version.outputs.version }})"
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
 
-      - name: Report version under test
-        run: echo "Building and testing grunt $GRUNT_VERSION"
+      - name: Install libvorbis (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libvorbis-dev libogg-dev cmake
 
-      - name: Install libvorbis + libogg dev
+      - name: Install libvorbis (Windows)
+        if: runner.os == 'Windows'
+        run: vcpkg install libvorbis libogg
+
+      - name: Configure (Linux)
+        if: runner.os == 'Linux'
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGRUNT_WERROR=ON
+
+      - name: Configure (Windows)
+        if: runner.os == 'Windows'
+        run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
+
+      - name: Build
+        run: cmake --build build --config Release
+
+      - name: Unit tests
+        run: ctest --test-dir build -C Release --output-on-failure
+
+  # ci — verification suite on Linux (real OGG/Vorbis behavior end-to-end).
+  ci:
+    needs: [version, build]
+    name: "ci (${{ needs.version.outputs.version }})"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libvorbis + ffmpeg
         run: sudo apt-get update && sudo apt-get install -y libvorbis-dev libogg-dev cmake ffmpeg
 
-      - name: Configure (Release, with libvorbis, warnings as errors)
-        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGRUNT_WERROR=ON
+      - name: Configure + build (warnings as errors)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGRUNT_WERROR=ON
+          cmake --build build --config Release -- -j2
 
       - name: Verify OGG support was detected
         run: |
           cmake -S . -B build_check 2>&1 | tee cfg.txt
           grep -q "OGG/Vorbis output enabled" cfg.txt \
-            || (echo "libvorbis NOT detected by CMake — OGG path would be untested" && exit 1)
+            || (echo "libvorbis NOT detected — OGG path would be untested" && exit 1)
 
-      - name: Build
-        run: cmake --build build --config Release -- -j2
-
-      - name: Run unit tests
-        run: ctest --test-dir build --output-on-failure
-
-      - name: Smoke bake (proves real OGG/Vorbis output end-to-end)
+      - name: Smoke bake (real OGG/Vorbis end-to-end)
         run: |
           ./build/grunt verify --voice voices/heavy_brother
           ./build/grunt batch --csv scripts/sample_lines.csv \
@@ -77,34 +103,10 @@ jobs:
           echo "codec=$codec"
           test "$codec" = "vorbis" || (echo "expected vorbis, got $codec" && exit 1)
 
-      - name: Determinism check (same seed -> identical bytes)
+      - name: Determinism (same seed -> identical bytes)
         run: |
           ./build/grunt synth --text "Open the gate!" --voice voices/heavy_brother \
             --seed 42 --format ogg --out a.ogg
           ./build/grunt synth --text "Open the gate!" --voice voices/heavy_brother \
             --seed 42 --format ogg --out b.ogg
           cmp a.ogg b.ogg || (echo "determinism broken" && exit 1)
-
-  windows:
-    needs: version
-    name: "windows (${{ needs.version.outputs.version }})"
-    runs-on: windows-latest
-    env:
-      GRUNT_VERSION: ${{ needs.version.outputs.version }}
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Report version under test
-        run: echo "Building and testing grunt $env:GRUNT_VERSION"
-
-      - name: Install libvorbis via vcpkg
-        run: vcpkg install libvorbis libogg
-
-      - name: Configure
-        run: cmake -S . -B build -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
-
-      - name: Build
-        run: cmake --build build --config Release
-
-      - name: Run unit tests
-        run: ctest --test-dir build -C Release --output-on-failure

@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.2.3] - 2026-06-16
+
+### Changed
+- Workflow restructured to match gool's pattern: `ci.yml` (build + ci jobs,
+  every push/PR) and a separate tag-triggered `release.yml`. Workflow display
+  name is now "grunt CI" / "grunt Release"; each run is labeled with the version.
+- `build` runs a Linux + Windows matrix; `ci` runs the verification suite
+  (tests, smoke bake, Vorbis codec assertion, determinism).
+- `release.yml` (tag pushes only) verifies, then publishes the source tarball
+  to a GitHub Release via `softprops/action-gh-release` (`contents: write`).
+- `scripts/package.sh` takes an optional output dir so CI can stage the tarball.
+
 ## [0.2.2] - 2026-06-16
 
 ### Added

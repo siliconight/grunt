@@ -1,0 +1,60 @@
+name: grunt Release
+run-name: "grunt Release ${{ github.ref_name }}"
+
+# Tag pushes only. Builds + verifies on the real toolchain, then publishes the
+# source tarball as a GitHub Release. build/ci gating mirrors ci.yml so a tag
+# can't release something that doesn't build or pass tests.
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  verify:
+    name: "verify ${{ github.ref_name }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install libvorbis + ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y libvorbis-dev libogg-dev cmake ffmpeg
+
+      - name: Configure + build (warnings as errors)
+        run: |
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release -DGRUNT_WERROR=ON
+          cmake --build build --config Release -- -j2
+
+      - name: Unit tests
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Smoke bake + codec check
+        run: |
+          ./build/grunt batch --csv scripts/sample_lines.csv \
+            --voice voices/heavy_brother --out-dir build/vo --seed 1234
+          codec=$(ffprobe -loglevel error -show_entries stream=codec_name \
+            -of default=nw=1:nk=1 build/vo/mission01_open_gate.ogg)
+          test "$codec" = "vorbis" || (echo "expected vorbis, got $codec" && exit 1)
+
+  release:
+    needs: verify
+    name: "release ${{ github.ref_name }}"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Build source tarball
+        id: pkg
+        run: echo "path=$(bash scripts/package.sh dist)" >> "$GITHUB_OUTPUT"
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: grunt ${{ github.ref_name }}
+          generate_release_notes: true
+          files: ${{ steps.pkg.outputs.path }}
