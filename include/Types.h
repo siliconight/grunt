@@ -46,7 +46,7 @@ struct PhonemeSeq {
 };
 
 // Unit kinds in a voice bank (declared early — RequestedUnit references it).
-enum class UnitType { Phoneme, Diphone, Syllable, Word, Grunt, Effort };
+enum class UnitType { Phoneme, Diphone, Syllable, Word, Phrase, Grunt, Effort };
 
 // ---- Stage 2/3 output: UnitPlan (TDD §6.2/6.3) -----------------------------
 // A requested unit carries a primary key plus an ordered fallback chain:

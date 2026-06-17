@@ -8,6 +8,8 @@
 
 namespace voc {
 
+class UnitDatabase; // defined below; SyllablePlanner's phrase-aware planner refs it
+
 // §6.1
 class TextNormalizer {
 public:
@@ -45,6 +47,12 @@ public:
     // syllable key -> constituent phoneme keys -> grunt. Supersedes the Phase 0
     // splitter when a mapper is provided.
     UnitPlan plan_phonemic(const NormalizedText& nt, const PhonemeMapper& mapper) const;
+    // Phrase-aware variant: when a bank is supplied, prefers a whole baked
+    // phrase unit for the longest run of tokens the bank has (limited-domain
+    // synthesis — fewer joins, higher quality), falling back to per-word
+    // planning (word -> syllable -> phoneme -> grunt) for the rest.
+    UnitPlan plan_phonemic(const NormalizedText& nt, const PhonemeMapper& mapper,
+                           const UnitDatabase& db) const;
 
 private:
     // crude open-syllable splitter for grunt mode; good enough to drive rhythm
