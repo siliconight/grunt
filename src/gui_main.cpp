@@ -17,6 +17,7 @@
 #include "Types.h"
 #include "ResourcePath.h"
 #include "Character.h"
+#include "Vocalization.h"
 #include "BankGen.h"
 #include "Generator.h"
 
@@ -218,6 +219,33 @@ int main(int argc, char** argv) {
     }
     int character_idx = 0;
 
+    // Effort vocalizations — loaded from data/efforts.json (same set the CLI's
+    // --effort exposes). Populates the Effort-mode dropdown.
+    EffortLibrary effort_lib;
+    std::vector<std::string> effort_ids;
+    std::vector<std::string> effort_labels;
+    std::vector<const char*> effort_label_ptrs;
+    {
+        std::string eerr;
+        if (effort_lib.load(voc::resource_path("data/efforts.json"), eerr)) {
+            for (const auto& e : effort_lib.all()) {
+                effort_ids.push_back(e.id);
+                effort_labels.push_back(e.desc.empty() ? e.id : (e.id + " — " + e.desc));
+            }
+        }
+        if (effort_ids.empty()) { effort_ids.push_back(""); effort_labels.push_back("(no efforts.json found)"); }
+        for (auto& s : effort_labels) effort_label_ptrs.push_back(s.c_str());
+    }
+    int effort_idx = 0;
+
+    // Input mode: what kind of utterance to render. Character + seed apply to
+    // all three, mirroring how the CLI composes --character with
+    // --text / --effort / --onomatopoeia.
+    //   0 = Line (spoken text)   1 = Effort (named grunt)   2 = Onomatopoeia
+    const char* input_modes[] = { "Line", "Effort", "Onomatopoeia" };
+    int input_mode = 0;
+    char onomatopoeia[128] = "aaargh";
+
     // Bank dropdown — discovered word/grunt banks under voices/. Refreshed after
     // a Generate. The selected bank is what Load opens.
     std::vector<std::string> banks = discover_banks();
@@ -272,7 +300,25 @@ int main(int argc, char** argv) {
                 opts.rasp           = cp->rasp ? 0.6 : 0.0;
             }
         }
-        last = engine.synth(text, emo, fx, s, opts);
+        // Render according to the selected input mode. Character recipe (above)
+        // applies to all three; emotion may be overridden per-mode as the CLI does.
+        if (input_mode == 1) {                       // Effort
+            const std::string& eid = effort_ids[effort_idx];
+            const Effort* ef = eid.empty() ? nullptr : effort_lib.find(eid);
+            if (!ef) { status = "No effort selected (need data/efforts.json)."; return false; }
+            PhonemeSeq seq = effort_to_phonemes(*ef);
+            if (cid.empty()) emo = ef->emotion;      // character emotion_bias wins if a character is set
+            seq.emotion = emo;
+            last = engine.synth_vocalization(seq, ef->intensity, fx, s, opts);
+        } else if (input_mode == 2) {                // Onomatopoeia
+            PhonemeMapper mapper;                    // letter-level G2P; no dict needed
+            double intensity = 0.7;
+            PhonemeSeq seq = onomatopoeia_to_phonemes(onomatopoeia, mapper, intensity);
+            if (!cid.empty()) seq.emotion = emo;     // let the character bias the emotion
+            last = engine.synth_vocalization(seq, intensity, fx, s, opts);
+        } else {                                     // Line (spoken text)
+            last = engine.synth(text, emo, fx, s, opts);
+        }
         if (!last.ok) { status = "Synth failed: " + last.error; return false; }
         status = "Rendered " + std::to_string(last.units) + " units, peak "
                + std::to_string(last.peak_dbfs) + " dBFS";
@@ -387,8 +433,19 @@ int main(int argc, char** argv) {
         }
 
         ImGui::Separator();
-        ImGui::TextUnformatted("Line");
-        ImGui::InputText("##text", text, sizeof(text));
+        ImGui::Combo("input", &input_mode, input_modes, IM_ARRAYSIZE(input_modes));
+        if (input_mode == 0) {                       // Line — spoken text
+            ImGui::TextUnformatted("Line");
+            ImGui::InputText("##text", text, sizeof(text));
+        } else if (input_mode == 1) {                // Effort — pick from efforts.json
+            ImGui::TextUnformatted("Effort");
+            ImGui::Combo("##effort", &effort_idx, effort_label_ptrs.data(),
+                         (int)effort_label_ptrs.size());
+        } else {                                     // Onomatopoeia — free text
+            ImGui::TextUnformatted("Onomatopoeia");
+            ImGui::InputText("##onomat", onomatopoeia, sizeof(onomatopoeia));
+            ImGui::TextDisabled("type a sound; repeat letters for intensity (argh -> aaargh)");
+        }
 
         ImGui::Checkbox("lock seed", &lock_seed);
         if (lock_seed) { ImGui::SameLine(); ImGui::InputInt("##seed", &seed); }
