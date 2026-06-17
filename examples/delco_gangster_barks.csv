@@ -1,0 +1,56 @@
+key,text,character
+# DELCO_DANGEROUS — gangster NPC bark library (Sopranos / PA-NJ mob cadence)
+# key = the trigger name gool plays by; text = spoken line (spelled phonetically
+# for accent — grunt adds the gruff texture, your spelling carries the cadence);
+# character = the preset voice. Edit freely; re-run: grunt batch --csv this --out-dir vo
+#
+# --- SPOTTING / ALERT ---
+spot_enemy_1,cock sucka ova here shoot im,gangster
+spot_enemy_2,ey we got company,gangster
+spot_enemy_3,yo heads up heads up,gangster
+spot_enemy_4,dere he is get im,gangster
+spot_enemy_5,I see ya ya little rat,gangster
+contact_left,on da left on da left,gangster
+contact_right,he's on ya right,gangster
+contact_behind,behind us behind us,gangster
+#
+# --- COMBAT / ORDERS ---
+get_down,get down,gangster
+take_cover,take cova fuhgeddaboudit,gangster
+push_up,move up move up lets go,gangster
+hold_position,hold ya ground,gangster
+flank_em,go around flank dese mooks,gangster
+suppress,keep im pinned keep im pinned,gangster
+grenade_out,frag out,gangster
+grenade_warning,grenade get outta dere,gangster
+reloading,reloadin cova me,gangster
+out_of_ammo,I'm dry I'm dry,gangster
+#
+# --- TAKING DAMAGE / DOWNED ---
+hit_1,agh ya got me,gangster
+hit_2,son of a,gangster
+hit_3,dat all you got,gangster
+downed,I'm hit I'm down ova here,gangster
+need_revive,gimme a hand ova here,gangster
+last_stand,come on den come on,gangster
+#
+# --- KILLS / WINS ---
+kill_1,badda bing,gangster
+kill_2,sit down,gangster
+kill_3,fuhgeddaboudit,gangster
+kill_4,dat's how we do it in delco,gangster
+area_clear,we're clean lets move,gangster
+#
+# --- IDLE / MOB FLAVOR ---
+idle_1,da hell is takin so long,gangster
+idle_2,I'm tellin you dis whole ting stinks,gangster
+idle_3,when dis is ova we get a sandwich,gangster
+idle_4,my feet are killin me,gangster
+taunt_1,you call dat shootin,gangster
+taunt_2,is dat all youse got,gangster
+#
+# --- REACTIONS ---
+holy_shit,holy shit,gangster
+oh_no,oh dis is bad dis is real bad,gangster
+lets_go,lets go lets go lets go,gangster
+nice_shot,attaboy nice shot,gangster
