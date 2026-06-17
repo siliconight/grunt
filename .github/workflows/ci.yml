@@ -94,7 +94,7 @@ jobs:
       - name: Fetch a voice model (for the speech path)
         run: ./build/grunt fetch-voice --model piper-en_US-ljspeech
 
-      - name: Smoke bake (speech path: speak + style + real OGG/Vorbis)
+      - name: "Smoke bake (speech path: speak + style + real OGG/Vorbis)"
         run: |
           ./build/grunt verify --voice voices/heavy_brother
           ./build/grunt batch --csv scripts/sample_lines.csv \
