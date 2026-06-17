@@ -71,8 +71,8 @@
       "ready": true
     },
     {
-      "id": "ganger",
-      "display_name": "Ganger (gruff PS1 tough-guy)",
+      "id": "gangster",
+      "display_name": "Gangster (gruff PS1 tough-guy)",
       "base_voice": "piper-en_US-norman",
       "pitch_offset_st": -5.0,
       "fx_preset": "clean_ps1",
