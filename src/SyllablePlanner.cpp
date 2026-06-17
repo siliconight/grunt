@@ -108,6 +108,31 @@ syllabify_phonemes(const std::vector<std::string>& ph) {
     return sylls;
 }
 
+// Build the word-first request for a single token: a Word-preferred slot whose
+// fallback chain degrades syllable -> phoneme -> grunt. Factored out so both the
+// plain and phrase-aware planners share identical per-word behaviour.
+static RequestedUnit build_word_request(const std::string& tok, bool emph,
+                                        const PhonemeMapper& mapper) {
+    WordPhonemes wp = mapper.map_word(tok);
+    auto sylls = syllabify_phonemes(wp.phonemes);
+
+    std::string wkey = tok;
+    for (auto& c : wkey) c = (char)std::tolower((unsigned char)c);
+
+    RequestedUnit word;
+    word.key = wkey;                 // matches a generate-baked word unit
+    word.preferred = UnitType::Word;
+    for (auto& syl : sylls) {
+        std::string sk;
+        for (size_t i = 0; i < syl.size(); ++i) sk += (i ? " " : "") + syl[i];
+        word.fallback.push_back(sk);
+    }
+    for (const auto& p : wp.phonemes) word.fallback.push_back(p);
+    word.fallback.push_back("");     // grunt
+    word.is_emphasis = emph;
+    return word;
+}
+
 UnitPlan SyllablePlanner::plan_phonemic(const NormalizedText& nt,
                                         const PhonemeMapper& mapper) const {
     UnitPlan up;
@@ -117,31 +142,74 @@ UnitPlan SyllablePlanner::plan_phonemic(const NormalizedText& nt,
     for (const auto& tok : nt.tokens) {
         bool emph = false;
         for (const auto& e : nt.emphasis_words) if (e == tok) { emph = true; break; }
+        // WORD-FIRST: a baked word unit wins when present -> crisp speech;
+        // otherwise degrades syllable -> phoneme -> grunt.
+        up.units.push_back(build_word_request(tok, emph, mapper));
+    }
+    return up;
+}
 
-        WordPhonemes wp = mapper.map_word(tok);
-        auto sylls = syllabify_phonemes(wp.phonemes);
+UnitPlan SyllablePlanner::plan_phonemic(const NormalizedText& nt,
+                                        const PhonemeMapper& mapper,
+                                        const UnitDatabase& db) const {
+    UnitPlan up;
+    up.emotion = nt.emotion_hint;
+    up.terminal_punct = nt.terminal_punct;
 
-        // WORD-FIRST: one request for the whole word. Its fallback chain is the
-        // full syllable/phoneme breakdown so that, when the bank has no word
-        // unit, the selector can still assemble the word from smaller units.
-        // A baked word unit (keyed by the word) wins when present -> crisp,
-        // intelligible speech; otherwise it degrades syllable -> phoneme -> grunt.
-        std::string wkey = tok;
-        for (auto& c : wkey) c = (char)std::tolower((unsigned char)c);
-
-        RequestedUnit word;
-        word.key = wkey;                 // matches a generate-baked word unit
-        word.preferred = UnitType::Word;
-        // build fallback: each syllable key, then each phoneme, then grunt
-        for (auto& syl : sylls) {
-            std::string sk;
-            for (size_t i = 0; i < syl.size(); ++i) sk += (i ? " " : "") + syl[i];
-            word.fallback.push_back(sk);
+    // PHRASE-FIRST (limited-domain synthesis): walk the tokens left to right;
+    // at each position try the LONGEST run of tokens that the bank has baked as
+    // a single phrase unit (keyed by the lowercased space-joined words). A whole
+    // phrase = one unit, zero internal joins -> highest quality. When no phrase
+    // matches at this position, emit one word request (word -> syllable ->
+    // phoneme -> grunt) and advance by one. This mirrors the longest-segment
+    // decomposition from limited-domain TTS literature.
+    const auto& toks = nt.tokens;
+    size_t i = 0;
+    while (i < toks.size()) {
+        size_t matched_len = 0;
+        std::string matched_key;
+        // greedy longest: try the whole remaining run, shrink from the end.
+        for (size_t len = toks.size() - i; len >= 2; --len) {
+            std::string key;
+            for (size_t k = 0; k < len; ++k) {
+                if (k) key += " ";
+                std::string w = toks[i + k];
+                for (auto& c : w) c = (char)std::tolower((unsigned char)c);
+                key += w;
+            }
+            if (!db.match_key(key).empty()) { matched_len = len; matched_key = key; break; }
         }
-        for (const auto& p : wp.phonemes) word.fallback.push_back(p);
-        word.fallback.push_back("");     // grunt
-        word.is_emphasis = emph;
-        up.units.push_back(word);
+
+        if (matched_len >= 2) {
+            // emit a single phrase slot. Fallback: the first word's breakdown,
+            // so a bank that lost the phrase still degrades gracefully on this
+            // slot; the remaining words of the phrase are then planned normally
+            // below only if the phrase unit is absent at selection time. To keep
+            // the slot count honest we emit the phrase as ONE unit and let the
+            // remaining tokens be re-planned per-word (the phrase wins when baked).
+            bool emph = false;
+            for (const auto& e : nt.emphasis_words)
+                if (e == toks[i]) { emph = true; break; }
+            RequestedUnit phrase;
+            phrase.key = matched_key;
+            phrase.preferred = UnitType::Phrase;
+            // graceful degradation: if the phrase unit is missing, fall back to
+            // the first word, then its phoneme(s), then grunt — a reasonable
+            // single-slot approximation. (Full per-word re-expansion is a future
+            // refinement; the phrase unit is the intended path.)
+            RequestedUnit w0 = build_word_request(toks[i], emph, mapper);
+            phrase.fallback.push_back(w0.key);
+            for (const auto& f : w0.fallback) phrase.fallback.push_back(f);
+            phrase.is_emphasis = emph;
+            up.units.push_back(phrase);
+            i += matched_len;
+        } else {
+            bool emph = false;
+            for (const auto& e : nt.emphasis_words)
+                if (e == toks[i]) { emph = true; break; }
+            up.units.push_back(build_word_request(toks[i], emph, mapper));
+            i += 1;
+        }
     }
     return up;
 }

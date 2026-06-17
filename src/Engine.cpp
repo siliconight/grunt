@@ -44,7 +44,9 @@ SynthResult Engine::synth(const std::string& text,
 
     NormalizedText nt = norm.normalize(text);
     // Phase 2: phoneme-backed planning supersedes the Phase 0 spelling splitter.
-    UnitPlan up = syl.plan_phonemic(nt, mapper);
+    // Phrase-aware: prefer whole baked phrases from the bank (limited-domain),
+    // falling back to word -> syllable -> phoneme -> grunt.
+    UnitPlan up = syl.plan_phonemic(nt, mapper, db_);
     if (emotion != Emotion::Neutral) up.emotion = emotion; // explicit override
     ProsodyPlan pp = pros.plan(up);
 

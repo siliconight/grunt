@@ -4,6 +4,28 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.5] - 2026-06-16
+
+### Added (phrase tier — limited-domain longer units)
+- The planner now prefers whole **baked phrases** over word-by-word assembly.
+  Walking the input left to right, it matches the LONGEST run of tokens the bank
+  has as a single phrase unit (keyed by the lowercased space-joined words), so a
+  covered phrase becomes ONE unit with zero internal joins — the highest-quality
+  path for a fixed-vocabulary bark tool. Falls back to the existing
+  word -> syllable -> phoneme -> grunt chain for anything not covered.
+- Applies the core finding of limited-domain concatenative TTS (longer units =
+  fewer joins = fewer artifacts) without any new dependency: it's pure planner
+  logic over banks you already generate. New `UnitType::Phrase`; Engine synth
+  uses the bank-aware planner. Verified: "open the gate" (baked) = 1 unit;
+  "open the gate now" = 2 (phrase + word); uncovered text = unchanged per-word.
+
+### Note
+- Bake phrases by giving `generate` a CSV row whose text is multi-word (e.g.
+  `holdline,hold the line`) — the unit is keyed by the spoken text, which the
+  phrase tier matches. A future refinement could re-expand a missing phrase into
+  its individual word slots; today a missing phrase degrades to the first word's
+  chain on that slot.
+
 ## [0.21.4] - 2026-06-16
 
 ### Changed (licensing provenance hardened)
