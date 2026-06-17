@@ -4,6 +4,21 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.1] - 2026-06-16
+
+### Fixed (modern piper rejected the model: "Unable to find voice")
+- After the v0.21.0 migration, piper installed and ran but generation failed
+  with `ValueError: Unable to find voice: 'en_US-ljspeech-high.onnx'`. The
+  modern piper1-gpl CLI takes a voice *name* resolved from a data dir, not a raw
+  `.onnx` path, and reads text as a positional arg — a different convention from
+  the old exe. grunt was still passing the old `--model <path> --output_file`
+  with text piped on stdin.
+- The generator now invokes the modern form:
+  `python -m piper -m <name> --data-dir <dir> -f <out> -- <text>`, splitting the
+  registry's model_file into its directory (`--data-dir`) and base name with
+  `.onnx` stripped (`-m`). fetch-voice already downloads the matching
+  `<name>.onnx` + `<name>.onnx.json` pair into that dir.
+
 ## [0.21.0] - 2026-06-16
 
 ### Changed (migrate to modern Python Piper — the old exe crashes)

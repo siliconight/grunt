@@ -1,3 +1,4 @@
+#include <filesystem>
 #include "Generator.h"
 #include "Json.h"
 #include "Wav.h"
@@ -76,10 +77,24 @@ public:
         const char* env = std::getenv("GRUNT_PIPER_CMD");
         std::string piper_cmd = (env && *env) ? env : "piper";
 
+        // Modern piper (piper1-gpl, `pip install piper-tts`) resolves a voice by
+        // NAME from a data dir, not by a raw .onnx path:
+        //   python -m piper -m <name> --data-dir <dir> -f <out> -- <text>
+        // So split the registry's model_file into its directory (--data-dir) and
+        // its base name without the .onnx extension (-m).
+        std::filesystem::path mp(model.model_file);
+        std::string data_dir = mp.has_parent_path() ? mp.parent_path().string() : ".";
+        std::string voice_name = mp.filename().string();
+        if (voice_name.size() > 5 &&
+            voice_name.compare(voice_name.size() - 5, 5, ".onnx") == 0)
+            voice_name.resize(voice_name.size() - 5);
+
         std::ostringstream cmd;
-        cmd << "echo " << shell_quote(text)
-            << " | " << piper_cmd << " --model " << shell_quote(model.model_file)
-            << " --output_file " << shell_quote(c.wav_path);
+        cmd << piper_cmd
+            << " -m " << shell_quote(voice_name)
+            << " --data-dir " << shell_quote(data_dir)
+            << " -f " << shell_quote(c.wav_path)
+            << " -- " << shell_quote(text);
         int rc = std::system(cmd.str().c_str());
         if (rc != 0) {
             c.error = "piper invocation failed (rc=" + std::to_string(rc) +
