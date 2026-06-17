@@ -4,6 +4,32 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.8] - 2026-06-16
+
+### Added (three vetted public-domain voices — more character range)
+- **Cori** (UK English female, ~24h LibriVox, from scratch), **Kristin** (US
+  English female, ~11.5h LibriVox, from scratch), **John** (US English male,
+  ~12.5h LibriVox — note: finetuned from Kristin, clean chain documented). All
+  from Bryce Beattie (same trusted creator as LJ/Norman), public-domain
+  LibriVox audio, creator-dedicated public domain. All have direct download URLs
+  so `fetch-voice` handles them. Gives the character system +2 female and +1
+  male base timbres beyond pitch-shifting two voices.
+
+### Excluded (documented in registry `_excluded_models`, NOT shippable)
+- **Jenny (Dioco)** and **Clean 100** are deliberately excluded: their training
+  datasets are CC-BY / CC-BY-4.0 (attribution required), NOT public domain. The
+  creator's friendly grant cannot override the underlying dataset's CC-BY
+  obligation. They're recorded with reasons so they aren't re-added by mistake.
+- ManyVoice (clean, but multi-speaker — needs speaker addressing) and "Bryce"
+  (clean license, but a named person's cloned voice — publicity-rights
+  consideration) are noted and deferred.
+
+### Safety
+- All claims are good-faith reads, not legal advice. Defense in depth: excluded
+  voices aren't in the live registry (can't be referenced by id), and the
+  ShipGate still blocks any clip at bake time whose provenance isn't
+  commercial-use + redistributable.
+
 ## [0.21.7] - 2026-06-16
 
 ### Fixed (no more "'piper' is not recognized" — auto-detection everywhere)
