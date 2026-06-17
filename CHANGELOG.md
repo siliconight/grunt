@@ -4,6 +4,20 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.7] - 2026-06-16
+
+### Fixed (no more "'piper' is not recognized" — auto-detection everywhere)
+- grunt previously defaulted to invoking a bare `piper` command, which usually
+  doesn't exist (upstream ships only a Python package now). So `grunt generate`
+  and the GUI's Generate button failed with "'piper' is not recognized" unless
+  the user manually set `GRUNT_PIPER_CMD` (only setup.bat did). Now a shared
+  `detect_piper_cmd()` auto-probes `piper` -> `python -m piper` -> `py -m piper`
+  and uses the first that runs — used by the generator, `doctor`, AND the GUI.
+  `GRUNT_PIPER_CMD` still works as an override. Result: with `pip install
+  piper-tts`, plain `grunt generate` and the GUI just work, no env var, no
+  setup.bat required. When no piper is found at all, the error now says exactly
+  how to fix it (`pip install piper-tts`) instead of a cryptic shell error.
+
 ## [0.21.6] - 2026-06-16
 
 ### Fixed (piper "Unable to find voice" when run by setup.bat / GUI)

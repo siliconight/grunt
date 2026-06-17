@@ -18,6 +18,7 @@
 #include "ResourcePath.h"
 #include "Character.h"
 #include "BankGen.h"
+#include "Generator.h"
 
 #include "imgui.h"
 #include "backends/imgui_impl_glfw.h"
@@ -127,22 +128,8 @@ static bool bank_has_words(const std::string& bank_name) {
 // (`python -m piper`), or a bundled binary next to the exe. Returns the command
 // string to invoke (sets nothing; caller exports GRUNT_PIPER_CMD), or "".
 static std::string find_piper() {
-    struct P { const char* cmd; const char* test; };
-#if defined(_WIN32)
-    const P cands[] = {
-        {"piper",           "piper --help >NUL 2>&1"},
-        {"python -m piper", "python -m piper --help >NUL 2>&1"},
-        {"py -m piper",     "py -m piper --help >NUL 2>&1"},
-    };
-#else
-    const P cands[] = {
-        {"piper",            "piper --help >/dev/null 2>&1"},
-        {"python3 -m piper", "python3 -m piper --help >/dev/null 2>&1"},
-        {"python -m piper",  "python -m piper --help >/dev/null 2>&1"},
-    };
-#endif
-    for (const auto& c : cands)
-        if (std::system(c.test) == 0) return c.cmd;
+    std::string cmd = voc::detect_piper_cmd();
+    if (!cmd.empty()) return cmd;
 
     // bundled binary next to the exe (legacy standalone piper)?
     std::error_code ec;

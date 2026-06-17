@@ -45,6 +45,11 @@ struct GeneratedClip {
 
 // Abstract generator backend. Piper shells out to the piper binary; Stub
 // synthesizes a deterministic tone so the pipeline is testable offline.
+// Detect how to invoke piper: GRUNT_PIPER_CMD if set, else the first working of
+// {piper, python -m piper, py/python3 -m piper}, else "". Shared by generator,
+// doctor, and GUI.
+std::string detect_piper_cmd();
+
 class Generator {
 public:
     virtual ~Generator() = default;
