@@ -160,10 +160,13 @@ int main(int argc, char** argv) {
     glfwMakeContextCurrent(win);
     glfwSwapInterval(1);
 
-    // window/taskbar icon (optional — silently skipped if the file isn't found)
+    // window/taskbar icon (optional — silently skipped if the file isn't found).
+    // Resolve exe-relative (not CWD) so it loads no matter where the GUI is
+    // launched from, the same way model/registry paths are resolved.
     {
         int iw, ih, ic;
-        unsigned char* px = stbi_load("assets/grunt_icon64.png", &iw, &ih, &ic, 4);
+        std::string icon_path = voc::resource_path("assets/grunt_icon64.png");
+        unsigned char* px = stbi_load(icon_path.c_str(), &iw, &ih, &ic, 4);
         if (px) {
             GLFWimage icon{ iw, ih, px };
             glfwSetWindowIcon(win, 1, &icon);

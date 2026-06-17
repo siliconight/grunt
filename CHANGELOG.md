@@ -4,6 +4,16 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.10] - 2026-06-16
+
+### Fixed (GUI window/taskbar icon now shows the grunt logo)
+- The GUI had icon-loading code but the orc logo never appeared, for two
+  reasons: the release zip never shipped the `assets/` folder (so
+  grunt_icon64.png wasn't present), and the icon was loaded from a bare
+  CWD-relative path instead of exe-relative. Now `assets/` is packaged in the
+  Windows zip and the icon resolves exe-relative (same as model/registry paths),
+  so the window and taskbar show the grunt logo regardless of launch directory.
+
 ## [0.21.9] - 2026-06-16
 
 ### Fixed (THE "Unable to find voice" root cause — Windows cmd.exe quoting)
