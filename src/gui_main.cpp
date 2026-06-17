@@ -289,6 +289,7 @@ int main(int argc, char** argv) {
         Emotion emo = (Emotion)emotion_idx;
         std::string fx = fxs[fx_idx];
         const std::string& cid = char_ids[character_idx];
+        std::string speech_model = "piper-en_US-ljspeech";  // default voice for speech
         if (!cid.empty()) {
             if (const CharacterPreset* cp = char_lib.find(cid)) {
                 fx  = cp->fx_preset;
@@ -298,6 +299,7 @@ int main(int argc, char** argv) {
                 opts.formant_shift  = cp->formant_shift;
                 opts.sub_layer      = cp->sub_layer;
                 opts.rasp           = cp->rasp ? 0.6 : 0.0;
+                if (!cp->base_voice.empty()) speech_model = cp->base_voice;
             }
         }
         // Render according to the selected input mode. Character recipe (above)
@@ -317,7 +319,9 @@ int main(int argc, char** argv) {
             if (!cid.empty()) seq.emotion = emo;     // let the character bias the emotion
             last = engine.synth_vocalization(seq, intensity, fx, s, opts);
         } else {                                     // Line (spoken text)
-            last = engine.synth(text, emo, fx, s, opts);
+            // Speak the whole line via Piper, then style it — says any words,
+            // not just what's in a bank. No bank needed for speech.
+            last = engine.synth_speech(text, speech_model, fx, opts, 1.0);
         }
         if (!last.ok) { status = "Synth failed: " + last.error; return false; }
         status = "Rendered " + std::to_string(last.units) + " units, peak "

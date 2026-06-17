@@ -4,6 +4,32 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.0] - 2026-06-17
+
+### Changed (ARCHITECTURE — grunt now speaks any words, then styles them)
+- **The product is now: type any text -> hear clean English (Piper speaks the
+  whole line) -> make it sound PS1 (character + FX) -> export OGG.** Previously
+  spoken lines were stitched from a fixed bank of pre-baked word units with a
+  syllable/phoneme fallback, which (a) could only say words in the bank and
+  (b) ran every unit through a duration-fit stage that crushed real words into
+  fast, high-pitched, unintelligible audio.
+- New `Engine::synth_speech`: synthesizes the WHOLE line with Piper into one
+  clean utterance, then applies character pitch/formant/sub/rasp + the PS1 FX
+  chain **at the audio's natural length** (length-preserving PSOLA pitch shift;
+  no stitching, no duration-crush). This removes the entire class of mangling
+  bug and lets grunt say anything.
+- `grunt synth --text "..."` and the GUI's **Line** mode now use this path. A
+  bank is **no longer needed** to speak — `--voice` is required only for
+  `--effort` / `--onomatopoeia` (which genuinely concatenate bank units). New
+  `synth --model <id>` (voice choice; defaults to the character's base voice or
+  LJ) and `--speed <x>` (<1 slower, >1 faster).
+
+### Unchanged
+- Efforts, onomatopoeia, and grunt-only banks still use the concatenative path
+  (correct for non-lexical sounds). The ship gate, licensing model, and OGG
+  output are unchanged — this is still build-time authoring; the game ships
+  baked OGGs with no runtime synthesis.
+
 ## [0.21.13] - 2026-06-16
 
 ### Fixed (generated banks couldn't be loaded — missing voice.json)

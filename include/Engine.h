@@ -58,6 +58,21 @@ public:
                                    uint64_t seed,
                                    const Options& opts);
 
+    // SPEECH PATH (the primary one for spoken lines): synthesize the WHOLE text
+    // directly with Piper into one clean utterance, then style it — apply
+    // character pitch/formant/sub/rasp to the whole buffer at its NATURAL length
+    // (no unit stitching, no duration-fit), then the PS1 FX chain. This says any
+    // words you type, intelligibly, then makes them sound retro. Needs a Piper
+    // voice model present (model_id, e.g. "piper-en_US-ljspeech"); does NOT need
+    // a loaded bank. The concatenative bank path (synth above) remains for
+    // grunt-only banks; synth_vocalization remains for efforts/onomatopoeia.
+    SynthResult synth_speech(const std::string& text,
+                             const std::string& model_id,
+                             const std::string& fx_preset,
+                             const Options& opts,
+                             double speed = 1.0,
+                             const std::string& generator_override = "");
+
 private:
     UnitDatabase db_;
     bool loaded_ = false;

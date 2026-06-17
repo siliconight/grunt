@@ -85,14 +85,18 @@ float resolve_quality(const Args& a) {
 int cmd_synth(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
     bool has_input = a.has("text") || a.has("effort") || a.has("onomatopoeia");
-    if (!has_input || !a.has("voice") || !a.has("out")) {
+    bool needs_bank = a.has("effort") || a.has("onomatopoeia");  // these read bank units
+    if (!has_input || !a.has("out") || (needs_bank && !a.has("voice"))) {
         std::cerr << "usage: grunt synth (--text \"...\" | --effort <id> | --onomatopoeia \"aaargh\")"
-                     " --voice <dir> --out <file>"
-                     " [--character <name>] [--emotion neutral|urgent|angry]"
+                     " --out <file>"
+                     " [--character <name>] [--model <id>] [--speed 1.0]"
+                     " [--emotion neutral|urgent|angry]"
                      " [--style clean_ps1] [--format ogg|wav] [--quality 0.4] [--seed N]\n"
-                     "  --effort renders a named vocalization from data/efforts.json (pain_death, yell, ...).\n"
-                     "  --onomatopoeia voices a literal spelling as a sound (repeated letters = more intense).\n"
-                     "  --character applies a preset from data/characters.json (overrides emotion/style).\n"
+                     "  --text  speaks ANY words via Piper, then styles them (no bank needed).\n"
+                     "          --model picks the voice (default piper-en_US-ljspeech or the\n"
+                     "          character's base voice); --speed <1 slower, >1 faster.\n"
+                     "  --effort/--onomatopoeia render from a bank (--voice <dir> required).\n"
+                     "  --character applies a preset from data/characters.json (pitch/formant/rasp/FX).\n"
                      "  default format: ogg (Vorbis). out extension is set to match the format.\n";
         return 2;
     }
@@ -102,6 +106,7 @@ int cmd_synth(int argc, char** argv) {
     std::string fx = a.get("style", "clean_ps1");
     uint64_t seed = a.has("seed") ? std::stoull(a.get("seed")) : 0x9E3779B97F4A7C15ULL;
     Engine::Options opts;
+    std::string char_base_voice;  // for the Piper speech path's model choice
 
     // --character applies a preset recipe (overrides emotion/style unless those
     // were explicitly given). Pitch/gain layer onto the render.
@@ -128,6 +133,7 @@ int cmd_synth(int argc, char** argv) {
         opts.formant_shift  = cp->formant_shift;
         opts.sub_layer      = cp->sub_layer;
         opts.rasp           = cp->rasp ? 0.6 : 0.0;
+        char_base_voice     = cp->base_voice;
     }
 
     bool fb = false;
@@ -141,7 +147,9 @@ int cmd_synth(int argc, char** argv) {
     }
 
     Engine engine;
-    if (!engine.load_voice(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
+    if (needs_bank) {
+        if (!engine.load_voice(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
+    }
 
     SynthResult res;
     if (a.has("effort")) {
@@ -167,7 +175,16 @@ int cmd_synth(int argc, char** argv) {
         if (a.has("emotion")) seq.emotion = emo;
         res = engine.synth_vocalization(seq, intensity, fx, seed, opts);
     } else {
-        res = engine.synth(a.get("text"), emo, fx, seed, opts);
+        // SPEECH: synthesize the whole line with Piper and style it (the primary
+        // path — says any words, intelligibly, then makes them sound PS1). Pick
+        // the voice model: explicit --model, else the character's base voice,
+        // else default to LJ. The --voice bank is NOT needed for speech.
+        std::string model_id = a.get("model",
+            (a.has("character") && !char_base_voice.empty()) ? char_base_voice
+                                                             : "piper-en_US-ljspeech");
+        double speed = a.has("speed") ? std::stod(a.get("speed")) : 1.0;
+        res = engine.synth_speech(a.get("text"), model_id, fx, opts, speed,
+                                  a.get("generator", ""));
     }
     if (!res.ok) { std::cerr << "synth failed: " << res.error << "\n"; return 1; }
     AudioBuffer& buf = res.audio;
