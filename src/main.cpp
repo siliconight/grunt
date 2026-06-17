@@ -224,28 +224,29 @@ int cmd_verify(int argc, char** argv) {
 // batch: CSV of name,voice,text,emotion[,fx] -> folder of named clips + manifest
 int cmd_batch(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
-    if (!a.has("csv") || !a.has("voice") || !a.has("out-dir")) {
-        std::cerr << "usage: grunt batch --csv <lines.csv> --voice <dir> --out-dir <dir>"
+    if (!a.has("csv") || !a.has("out-dir")) {
+        std::cerr << "usage: grunt batch --csv <lines.csv> --out-dir <dir>"
+                     " [--character <name>] [--model <id>] [--speed 1.0]"
                      " [--style clean_ps1] [--format ogg|wav] [--quality 0.4] [--seed N]\n"
+                     "  Speaks each line via Piper and styles it (no bank needed).\n"
+                     "  CSV columns: key,text[,character]  (a per-line character\n"
+                     "  overrides --character; header row 'key,text' is skipped).\n"
                      "  default format: ogg (Vorbis).\n";
         return 2;
     }
     Engine engine; std::string err;
-    if (!engine.load_voice(a.get("voice"), err)) { std::cerr << "voice load failed: " << err << "\n"; return 1; }
 
-    // gate before producing anything (TDD §22)
-    GateResult gate = verify_bank(engine.db());
-    if (!gate.passed) {
-        std::cerr << "ship gate FAILED — refusing to bake bank:\n";
-        for (const auto& f : gate.failures) std::cerr << "  REJECT " << f << "\n";
-        return 1;
-    }
+    // Load the character library once (presets supply voice + pitch/formant/rasp/FX).
+    CharacterLibrary clib;
+    bool have_clib = clib.load(a.get("characters", resource_path("data/characters.json")), err);
 
     std::ifstream csv(a.get("csv"));
     if (!csv) { std::cerr << "cannot open csv: " << a.get("csv") << "\n"; return 1; }
 
-    std::string fx = a.get("style", "clean_ps1");
-    uint64_t seed = a.has("seed") ? std::stoull(a.get("seed")) : 0x9E3779B97F4A7C15ULL;
+    std::string default_fx = a.get("style", "clean_ps1");
+    std::string default_char = a.get("character", "");
+    std::string default_model = a.get("model", "");
+    double speed = a.has("speed") ? std::stod(a.get("speed")) : 1.0;
     bool fb = false;
     AudioFormat fmt = resolve_format(a, fb);
     float q = resolve_quality(a);
@@ -262,30 +263,65 @@ int cmd_batch(int argc, char** argv) {
     if (ec) { std::cerr << "cannot create out-dir " << out_dir << ": " << ec.message() << "\n"; return 1; }
 
     std::ostringstream manifest;
-    manifest << "{\n  \"bank_id\": \"" << json_escape(engine.voice_id()) << "_vo\",\n"
+    manifest << "{\n  \"bank_id\": \"" << json_escape(
+                 default_char.empty() ? std::string("vo") : default_char) << "_vo\",\n"
              << "  \"schema_version\": 1,\n  \"clips\": [\n";
+
+    // Resolve a character preset name -> Options + fx + model. Returns false if
+    // the named character isn't found (so the line can be skipped with a note).
+    auto resolve_char = [&](const std::string& cname, Engine::Options& opts,
+                            std::string& fx, std::string& model) -> bool {
+        opts = Engine::Options{};
+        fx = default_fx;
+        model = default_model;
+        if (cname.empty()) {
+            if (model.empty()) model = "piper-en_US-ljspeech";
+            return true;
+        }
+        if (!have_clib) return false;
+        const CharacterPreset* cp = clib.find(cname);
+        if (!cp) return false;
+        fx = cp->fx_preset;
+        opts.extra_pitch_st = cp->pitch_offset_st;
+        opts.extra_gain_db  = cp->gain_db;
+        opts.formant_shift  = cp->formant_shift;
+        opts.sub_layer      = cp->sub_layer;
+        opts.rasp           = cp->rasp ? 0.6 : 0.0;
+        if (model.empty()) model = cp->base_voice.empty() ? "piper-en_US-ljspeech" : cp->base_voice;
+        return true;
+    };
 
     std::string line; bool first = true; int n = 0; bool header_skipped = false;
     while (std::getline(csv, line)) {
         if (line.empty()) continue;
-        // split CSV (no quoted-comma support in Phase 0)
+        if (!line.empty() && line.back() == '\r') line.pop_back();  // tolerate CRLF
+        { size_t q0 = line.find_first_not_of(" \t");
+          if (q0 == std::string::npos || line[q0] == '#') continue; }  // blank/comment
         std::vector<std::string> f; std::stringstream ss(line); std::string cell;
         while (std::getline(ss, cell, ',')) f.push_back(cell);
-        if (f.size() < 3) continue;
-        if (!header_skipped && f[0] == "name") { header_skipped = true; continue; }
+        if (f.size() < 2) continue;
+        if (!header_skipped && (f[0] == "key" || f[0] == "name")) { header_skipped = true; continue; }
         header_skipped = true;
 
-        std::string name = f[0], text = f[2];
-        Emotion emo = f.size() > 3 ? emotion_from_string(f[3]) : Emotion::Neutral;
-        std::string clip_fx = f.size() > 4 && !f[4].empty() ? f[4] : fx;
-        // per-clip deterministic seed derived from base seed + name
-        uint64_t cseed = seed;
-        for (char c : name) cseed = cseed * 1099511628211ULL + (unsigned char)c;
+        std::string name = f[0], text = f[1];
+        // trim leading spaces on text (CSV " holy shit" -> "holy shit")
+        size_t p0 = text.find_first_not_of(' ');
+        if (p0 != std::string::npos) text = text.substr(p0);
+        std::string cname = (f.size() > 2 && !f[2].empty()) ? f[2] : default_char;
+        // strip spaces around per-line character
+        { size_t s0 = cname.find_first_not_of(' '); size_t s1 = cname.find_last_not_of(' ');
+          if (s0 != std::string::npos) cname = cname.substr(s0, s1 - s0 + 1); }
 
-        SynthResult res = engine.synth(text, emo, clip_fx, cseed);
-        if (!res.ok) {
-            std::cerr << "  skip " << name << ": " << res.error << "\n"; continue;
+        Engine::Options opts; std::string fx, model;
+        if (!resolve_char(cname, opts, fx, model)) {
+            std::cerr << "  skip " << name << ": character '" << cname << "' not found\n";
+            continue;
         }
+
+        SynthResult res = engine.synth_speech(text, model, fx, opts, speed,
+                                              a.get("generator", ""));
+        if (!res.ok) { std::cerr << "  skip " << name << ": " << res.error << "\n"; continue; }
+
         AudioBuffer& buf = res.audio;
         std::string rel = name + "." + ext;
         std::string path = out_dir + "/" + rel;
@@ -296,14 +332,13 @@ int cmd_batch(int argc, char** argv) {
         int dur_ms = (int)(buf.samples.size() * 1000.0 / buf.sample_rate);
         manifest << "    { \"name\": \"" << json_escape(name) << "\""
                  << ", \"file\": \"" << json_escape(rel) << "\""
-                 << ", \"voice_id\": \"" << json_escape(engine.voice_id()) << "\""
                  << ", \"text\": \"" << json_escape(text) << "\""
-                 << ", \"emotion\": \"" << emotion_to_string(emo) << "\""
-                 << ", \"fx_preset\": \"" << json_escape(clip_fx) << "\""
+                 << ", \"character\": \"" << json_escape(cname) << "\""
+                 << ", \"fx_preset\": \"" << json_escape(fx) << "\""
                  << ", \"duration_ms\": " << dur_ms
                  << ", \"sample_rate\": " << buf.sample_rate
-                 << ", \"peak_dbfs\": " << res.peak_dbfs
-                 << ", \"seed\": " << cseed << " }";
+                 << ", \"peak_dbfs\": " << res.peak_dbfs << " }";
+        std::cout << "  baked " << name << "  (" << cname << ")\n";
         n++;
     }
     manifest << "\n  ]\n}\n";

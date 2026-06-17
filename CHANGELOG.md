@@ -4,6 +4,22 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.1] - 2026-06-17
+
+### Changed (batch bakes a whole VO bank via the speech path)
+- `grunt batch` now routes every line through the new speech engine
+  (`synth_speech`) — speaks any text and styles it — instead of the old
+  concatenative bank stitching. A **bank is no longer required**; `--voice` is
+  gone from batch. New `--character <name>` styles the whole bank, and the CSV
+  gains an optional 3rd **character** column so one CSV can mix characters
+  (`key,text,character`). Blank lines and `#` comments are skipped.
+
+### Added
+- `examples/delco_gangster_barks.csv` — a 39-line PA/NJ 1990s-mob bark library
+  (spotting, combat orders, taking damage, kills, idle mob flavor, reactions),
+  written phonetically for the Sopranos-esque cadence. Bake it with:
+  `grunt batch --csv examples/delco_gangster_barks.csv --out-dir delco_vo`
+
 ## [0.22.0] - 2026-06-17
 
 ### Changed (ARCHITECTURE — grunt now speaks any words, then styles them)
