@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.2] - 2026-06-16
+
+### Added
+- New character preset **ganger** ("Ganger (gruff PS1 tough-guy)"): Norman base
+  voice pitched -5 semitones (low & menacing), formant shifted -0.15 (wider
+  chest), rasp on (chain-smoker gravel), light sub-octave layer (menace weight),
+  +2 dB, through the clean PS1 chain (bit-crushed, no radio). For a tough-guy /
+  enforcer read.
+- Note: grunt supplies the gruff/low/gravel texture, not a regional accent — the
+  phonemes are standard English from the Norman voice. rasp/formant/sub DSP are
+  still ear-unverified; treat the recipe as a tunable starting point.
+
 ## [0.21.1] - 2026-06-16
 
 ### Fixed (modern piper rejected the model: "Unable to find voice")

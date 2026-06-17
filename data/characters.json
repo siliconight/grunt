@@ -71,6 +71,19 @@
       "ready": true
     },
     {
+      "id": "ganger",
+      "display_name": "Ganger (gruff PS1 tough-guy)",
+      "base_voice": "piper-en_US-norman",
+      "pitch_offset_st": -5.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "neutral",
+      "formant_shift": -0.15,
+      "rasp": true,
+      "sub_layer": true,
+      "gain_db": 2.0,
+      "ready": true
+    },
+    {
       "id": "demon",
       "display_name": "Demon",
       "base_voice": "piper-en_US-norman",
