@@ -4,6 +4,17 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.2] - 2026-06-17
+
+### Fixed (CI regression from the speech pivot)
+- v0.22.0 made `synth --text` ALWAYS go through Piper, which broke callers that
+  pass a `--voice` bank (and the CI determinism test, which has no Piper). Now
+  `--text` routes by intent: **with `--voice <bank>` it stitches from that bank**
+  (the concatenative path — e.g. a grunt-only bank), and **without `--voice` it
+  speaks the whole line via Piper and styles it** (the speech path). The GUI Line
+  mode and bare `grunt synth --text "..."` use speech; the grunt-bank path is
+  preserved for callers that want it.
+
 ## [0.22.1] - 2026-06-17
 
 ### Changed (batch bakes a whole VO bank via the speech path)
