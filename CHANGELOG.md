@@ -4,6 +4,16 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.4] - 2026-06-16
+
+### Changed (licensing provenance hardened)
+- The LJ Speech voice's public-domain claim is now traced to its **primary
+  source** (keithito.com/LJ-Speech-Dataset) rather than just the Piper model
+  card. Registry gains `dataset_source_url` and a structured
+  `dataset_provenance` attestation (texts 1884-1964 + 2016-17 LibriVox audio,
+  public domain, no use restrictions). Strengthens the zero-licensing-exposure
+  backbone the ship gate enforces. Still a good-faith read, not legal advice.
+
 ## [0.21.3] - 2026-06-16
 
 ### Changed

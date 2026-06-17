@@ -10,12 +10,14 @@
       "commercial_use": true,
       "redistributable": true,
       "source_url": "https://huggingface.co/rhasspy/piper-voices/tree/main/en/en_US/ljspeech/high",
-      "dataset": "LJ Speech (https://keithito.com/LJ-Speech-Dataset/)",
-      "dataset_license": "public domain",
+      "dataset": "LJ Speech 1.1",
+      "dataset_license": "public domain (US)",
       "voice_traits": "US English, female, single speaker, trained from scratch on public-domain data",
-      "notes": "Clean transitive chain: trained FROM SCRATCH on the public-domain LJ Speech corpus (not fine-tuned from a restricted base). Default female base. Verified vs published MODEL_CARD 2026-06; re-confirm before commercial release.",
+      "notes": "Clean transitive chain: trained FROM SCRATCH on the public-domain LJ Speech corpus (not fine-tuned from a restricted base). Default female base. Provenance traced to the primary dataset source (dataset_source_url), not just the model card. Re-confirm before commercial release.",
       "download_url": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx?download=true",
-      "download_url_json": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx.json?download=true"
+      "download_url_json": "https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/high/en_US-ljspeech-high.onnx.json?download=true",
+      "dataset_source_url": "https://keithito.com/LJ-Speech-Dataset/",
+      "dataset_provenance": "Primary source: dataset author states the texts (published 1884-1964) and the 2016-17 LibriVox audio are public domain, with no restrictions on use. 13,100 single-speaker clips, ~24h, public-domain non-fiction. Verified against keithito.com/LJ-Speech-Dataset 2026-06. Good-faith read, not legal advice; gate enforces."
     },
     {
       "id": "piper-en_US-norman",
