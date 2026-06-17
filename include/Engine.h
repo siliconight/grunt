@@ -14,6 +14,7 @@ struct SynthResult {
     double peak_dbfs = 0.0;
     bool ok = false;
     std::string error;
+    std::string missing_model;  // set when synth failed only because the voice isn't downloaded
 };
 
 // Owns a loaded voice bank; renders lines through the full pipeline.

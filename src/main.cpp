@@ -328,6 +328,15 @@ int cmd_batch(int argc, char** argv) {
 
         SynthResult res = engine.synth_speech(text, model, fx, opts, speed,
                                               a.get("generator", ""));
+        if (!res.ok && !res.missing_model.empty() && model != "piper-en_US-ljspeech") {
+            // The character's voice isn't downloaded; fall back to the default
+            // LJ voice so the bake still produces clips. Note it once per line.
+            std::cerr << "  note " << name << ": voice '" << res.missing_model
+                      << "' not downloaded, using piper-en_US-ljspeech (fetch it with: "
+                      << "grunt fetch-voice --model " << res.missing_model << ")\n";
+            res = engine.synth_speech(text, "piper-en_US-ljspeech", fx, opts, speed,
+                                      a.get("generator", ""));
+        }
         if (!res.ok) { std::cerr << "  skip " << name << ": " << res.error << "\n"; continue; }
 
         AudioBuffer& buf = res.audio;

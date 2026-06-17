@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.4] - 2026-06-17
+
+### Fixed
+- Picking a character whose voice isn't downloaded (e.g. **gangster**, which uses
+  the `norman` voice) no longer fails with piper's cryptic `Unable to find
+  voice: norman` traceback. `synth_speech` now checks the model's `.onnx` is on
+  disk and returns a clear, actionable message: *"voice 'X' isn't downloaded
+  yet. Get it with: grunt fetch-voice --model X."*
+- `grunt batch --character <c>` falls back to the default `piper-en_US-ljspeech`
+  voice (with a one-line note per clip) when the character's base voice isn't
+  downloaded, so a whole bank still bakes instead of producing zero clips. This
+  also unblocks the CI smoke bake, which fetches only LJ.
+
 ## [0.22.3] - 2026-06-17
 
 ### Fixed

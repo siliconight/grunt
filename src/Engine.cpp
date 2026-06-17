@@ -150,6 +150,20 @@ SynthResult Engine::synth_speech(const std::string& text,
     const VoiceModel* model = reg.find(model_id);
     if (!model) { r.error = "voice model '" + model_id + "' not in registry"; return r; }
 
+    // Is the model actually downloaded? The registry only says it's *known*; the
+    // .onnx has to be on disk next to the binary (fetch-voice puts it there).
+    // Checking here turns piper's cryptic "Unable to find voice: <name>"
+    // traceback into a clear, actionable message naming the fetch command.
+    if (generator_override.empty() && model->generator == "piper") {
+        std::error_code mec;
+        if (!std::filesystem::exists(resource_path(model->model_file), mec)) {
+            r.error = "voice '" + model_id + "' isn't downloaded yet. Get it with: "
+                      "grunt fetch-voice --model " + model_id;
+            r.missing_model = model_id;   // lets batch fall back to a present voice
+            return r;
+        }
+    }
+
     // 2) Synthesize the WHOLE line with Piper into a temp wav — one clean,
     //    intelligible utterance, any words. (Same generator the bake uses; this
     //    is authoring-time synthesis, the game still ships only the baked OGG.)
