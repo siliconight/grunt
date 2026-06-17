@@ -60,6 +60,32 @@ static Provenance stamp(const VoiceModel& m, const std::string& gen_name) {
 
 // ---- Piper backend ---------------------------------------------------------
 // Shells out to the `piper` binary (build-time tool). grunt never links Piper.
+// Detect how to invoke piper on this machine. Returns GRUNT_PIPER_CMD if set,
+// else the first of {piper, python -m piper, py -m piper / python3 -m piper}
+// that actually runs, else "" if none found. Shared by the generator, doctor,
+// and the GUI so detection logic lives in exactly one place.
+std::string detect_piper_cmd() {
+    const char* env = std::getenv("GRUNT_PIPER_CMD");
+    if (env && *env) return env;
+    struct Probe { const char* cmd; const char* test; };
+#if defined(_WIN32)
+    static const Probe probes[] = {
+        {"piper",           "piper --help >NUL 2>&1"},
+        {"python -m piper", "python -m piper --help >NUL 2>&1"},
+        {"py -m piper",     "py -m piper --help >NUL 2>&1"},
+    };
+#else
+    static const Probe probes[] = {
+        {"piper",            "piper --help >/dev/null 2>&1"},
+        {"python3 -m piper", "python3 -m piper --help >/dev/null 2>&1"},
+        {"python -m piper",  "python -m piper --help >/dev/null 2>&1"},
+    };
+#endif
+    for (const auto& p : probes)
+        if (std::system(p.test) == 0) return p.cmd;
+    return "";
+}
+
 class PiperGenerator : public Generator {
 public:
     std::string name() const override { return "piper"; }
@@ -75,8 +101,18 @@ public:
         // The piper command is configurable via GRUNT_PIPER_CMD so the same
         // code works with: the modern Python CLI ("python -m piper"), a
         // standalone piper.exe, or a bundled binary path. Defaults to "piper".
-        const char* env = std::getenv("GRUNT_PIPER_CMD");
-        std::string piper_cmd = (env && *env) ? env : "piper";
+        // Resolve how to invoke piper. Honor GRUNT_PIPER_CMD if set; otherwise
+        // AUTO-DETECT — the standalone `piper` exe is usually absent (upstream
+        // ships only a Python package now), so probe `piper`, then
+        // `python -m piper`, then `py -m piper`, and use the first that runs.
+        // This means a user with `pip install piper-tts` needs no env var and no
+        // setup.bat — plain `grunt generate` and the GUI just work.
+        std::string piper_cmd = detect_piper_cmd();
+        if (piper_cmd.empty()) {
+            c.error = "piper not found. Install it with: pip install piper-tts "
+                      "(needs Python 3.9+). grunt auto-detects piper / python -m piper.";
+            return c;
+        }
 
         // Modern piper (piper1-gpl, `pip install piper-tts`) resolves a voice by
         // NAME from a data dir, not by a raw .onnx path:
