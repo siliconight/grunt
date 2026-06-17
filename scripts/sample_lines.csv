@@ -1,5 +1,5 @@
-name,voice,text,emotion,fx
-mission01_open_gate,heavy_brother,Open the gate!,urgent,clean_ps1
-goblin_taunt_01,heavy_brother,Get out of here!,angry,monster_ps1
-hero_no_way,heavy_brother,No way.,neutral,clean_ps1
-guard_help,heavy_brother,Help me!,urgent,radio_ps1
+key,text
+mission01_open_gate,Open the gate!
+goblin_taunt_01,Get out of here!
+hero_no_way,No way.
+guard_help,Help me!

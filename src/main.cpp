@@ -85,8 +85,13 @@ float resolve_quality(const Args& a) {
 int cmd_synth(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
     bool has_input = a.has("text") || a.has("effort") || a.has("onomatopoeia");
-    bool needs_bank = a.has("effort") || a.has("onomatopoeia");  // these read bank units
-    if (!has_input || !a.has("out") || (needs_bank && !a.has("voice"))) {
+    // effort/onomatopoeia always read bank units. For --text, a bank is OPTIONAL:
+    // with --voice we stitch from that bank (old path); without, we speak the
+    // whole line via Piper and style it (new speech path).
+    bool text_uses_bank = a.has("text") && a.has("voice");
+    bool needs_bank = a.has("effort") || a.has("onomatopoeia") || text_uses_bank;
+    if (!has_input || !a.has("out") ||
+        ((a.has("effort") || a.has("onomatopoeia")) && !a.has("voice"))) {
         std::cerr << "usage: grunt synth (--text \"...\" | --effort <id> | --onomatopoeia \"aaargh\")"
                      " --out <file>"
                      " [--character <name>] [--model <id>] [--speed 1.0]"
@@ -174,11 +179,14 @@ int cmd_synth(int argc, char** argv) {
         PhonemeSeq seq = onomatopoeia_to_phonemes(a.get("onomatopoeia"), mapper, intensity);
         if (a.has("emotion")) seq.emotion = emo;
         res = engine.synth_vocalization(seq, intensity, fx, seed, opts);
+    } else if (text_uses_bank) {
+        // --text WITH a --voice bank: stitch from that bank (the concatenative
+        // path — e.g. a grunt-only bank turning words into grunts).
+        res = engine.synth(a.get("text"), emo, fx, seed, opts);
     } else {
-        // SPEECH: synthesize the whole line with Piper and style it (the primary
-        // path — says any words, intelligibly, then makes them sound PS1). Pick
-        // the voice model: explicit --model, else the character's base voice,
-        // else default to LJ. The --voice bank is NOT needed for speech.
+        // --text with NO bank: speak the whole line via Piper and style it (the
+        // primary path — says any words, then makes them sound PS1). Voice:
+        // explicit --model, else the character's base voice, else LJ.
         std::string model_id = a.get("model",
             (a.has("character") && !char_base_voice.empty()) ? char_base_voice
                                                              : "piper-en_US-ljspeech");
