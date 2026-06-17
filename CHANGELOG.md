@@ -4,6 +4,14 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.3] - 2026-06-17
+
+### Fixed
+- `.github/workflows/ci.yml` was invalid YAML — a colon inside an unquoted step
+  name (`(speech path: speak ...)`) was parsed as a mapping, so GitHub rejected
+  the workflow ("mapping values are not allowed here", line 97). Quoted the step
+  name. No code change; the v0.22.2 speech-path CI now actually runs.
+
 ## [0.22.2] - 2026-06-17
 
 ### Fixed (CI regression from the speech pivot)
