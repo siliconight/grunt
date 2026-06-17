@@ -154,10 +154,23 @@ public:
 
 private:
     static std::string shell_quote(const std::string& s) {
+#if defined(_WIN32)
+        // std::system() runs through cmd.exe, which does NOT treat single quotes
+        // as quoting — it passes them through literally, so piper would receive
+        // -m 'en_US-ljspeech-high' (quotes included) and fail to find the voice.
+        // cmd.exe quotes with double quotes; embedded double quotes are escaped
+        // as "" inside a quoted run. Backslashes (Windows paths) are literal.
+        std::string o = "\"";
+        for (char ch : s) { if (ch == '"') o += "\"\""; else o += ch; }
+        o += "\"";
+        return o;
+#else
+        // POSIX sh: wrap in single quotes, escaping any embedded single quote.
         std::string o = "'";
         for (char ch : s) { if (ch == '\'') o += "'\\''"; else o += ch; }
         o += "'";
         return o;
+#endif
     }
 };
 
