@@ -2,6 +2,7 @@
 #include "Generator.h"
 #include "Json.h"
 #include "Wav.h"
+#include "ResourcePath.h"
 #include <fstream>
 #include <sstream>
 #include <cmath>
@@ -80,9 +81,13 @@ public:
         // Modern piper (piper1-gpl, `pip install piper-tts`) resolves a voice by
         // NAME from a data dir, not by a raw .onnx path:
         //   python -m piper -m <name> --data-dir <dir> -f <out> -- <text>
-        // So split the registry's model_file into its directory (--data-dir) and
-        // its base name without the .onnx extension (-m).
-        std::filesystem::path mp(model.model_file);
+        // The registry stores model_file as a bare name (e.g.
+        // "en_US-ljspeech-high.onnx"), and fetch-voice downloads it NEXT TO THE
+        // BINARY via resource_path(). So resolve the same exe-relative path here
+        // and hand piper that directory — otherwise --data-dir would be "." (the
+        // process CWD), which is usually NOT where the model lives, and piper
+        // fails with "Unable to find voice".
+        std::filesystem::path mp(resource_path(model.model_file));
         std::string data_dir = mp.has_parent_path() ? mp.parent_path().string() : ".";
         std::string voice_name = mp.filename().string();
         if (voice_name.size() > 5 &&

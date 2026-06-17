@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.6] - 2026-06-16
+
+### Fixed (piper "Unable to find voice" when run by setup.bat / GUI)
+- grunt told piper `--data-dir .` (the process working directory), but
+  fetch-voice downloads the model **next to the binary**. When grunt ran from a
+  different working dir (as setup.bat and the GUI do), piper looked in the wrong
+  folder and failed with "Unable to find voice" — even though the model was
+  present. (A manual run worked only if you'd cd'd into the model's folder
+  first.) The generator now resolves the model exe-relative (same as
+  fetch-voice) and passes that absolute directory as `--data-dir`, so it works
+  regardless of where grunt is invoked from.
+
 ## [0.21.5] - 2026-06-16
 
 ### Added (phrase tier — limited-domain longer units)
