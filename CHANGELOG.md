@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.12] - 2026-06-16
+
+### Changed (docs)
+- README now opens with a **GUI-first "Quick start on Windows — from zero to
+  sounds in Godot"**: download the release zip, `pip install piper-tts` (once),
+  open `grunt_gui.exe`, generate a talking bank, pick a character + input mode
+  (Line / Effort / Onomatopoeia), Play, Export to .ogg, drop into `res://`.
+  Includes the "grunts only, no Piper" path via the bundled heavy_brother bank.
+- Updated the GUI section to reflect the shipped features (character presets,
+  the three input modes, lock seed, prebuilt release exe) instead of the old
+  emotion/style-only, build-it-yourself framing.
+
 ## [0.21.11] - 2026-06-16
 
 ### Added (GUI input modes — effort + onomatopoeia, previously CLI-only)
