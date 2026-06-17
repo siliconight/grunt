@@ -4,10 +4,16 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.3] - 2026-06-16
+
+### Changed
+- Renamed the character preset `ganger` -> `gangster` (correct spelling). Use
+  `--character gangster` / "Gangster (gruff PS1 tough-guy)" in the GUI.
+
 ## [0.21.2] - 2026-06-16
 
 ### Added
-- New character preset **ganger** ("Ganger (gruff PS1 tough-guy)"): Norman base
+- New character preset **gangster** ("Gangster (gruff PS1 tough-guy)"): Norman base
   voice pitched -5 semitones (low & menacing), formant shifted -0.15 (wider
   chest), rasp on (chain-smoker gravel), light sub-octave layer (menace weight),
   +2 dB, through the clean PS1 chain (bit-crushed, no radio). For a tough-guy /
