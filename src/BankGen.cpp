@@ -108,6 +108,28 @@ GenerateResult generate_bank(const GenerateOptions& opt,
     std::filesystem::create_directories(opt.voice_dir + "/metadata", ec);
     std::ofstream mf(opt.voice_dir + "/metadata/units.json");
     mf << units_json.str();
+
+    // Write the bank descriptor (voice.json). Without it the UnitDatabase loader
+    // refuses the bank ("missing or empty voice.json"), so a freshly generated
+    // bank couldn't be loaded for synth/preview even though its clips are baked.
+    // voice_id = the bank's folder name; sample_rate matches piper's 22050 output.
+    {
+        std::string bank_name =
+            std::filesystem::path(opt.voice_dir).filename().string();
+        if (bank_name.empty())
+            bank_name = std::filesystem::path(opt.voice_dir).parent_path().filename().string();
+        std::ofstream vf(opt.voice_dir + "/voice.json");
+        vf << "{\n"
+           << "  \"voice_id\": \"" << json_escape(bank_name) << "\",\n"
+           << "  \"display_name\": \"" << json_escape(bank_name) << "\",\n"
+           << "  \"schema_version\": 1,\n"
+           << "  \"sample_rate\": 22050,\n"
+           << "  \"base_pitch\": 0,\n"
+           << "  \"default_fx_preset\": \"clean_ps1\",\n"
+           << "  \"generated_by\": \"grunt generate (" << json_escape(gen_name)
+           << ", model " << json_escape(model->id) << ")\"\n"
+           << "}\n";
+    }
     delete gen;
 
     if (n == 0) { r.error = "no units were generated (empty or unreadable CSV?)"; return r; }
