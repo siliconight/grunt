@@ -36,7 +36,66 @@ that import into Godot like any other audio asset.
 See `vocalizer_tdd.md` (the design doc) for the full architecture, and
 `ROADMAP.md` for progress and the principle that guides it.
 
-## Try it now
+## Quick start on Windows — from zero to sounds in Godot
+
+The fastest way in is the GUI. No building, no command line.
+
+**1. Get grunt.** Download the latest `grunt-vX.Y.Z-windows.zip` from the
+[Releases page](https://github.com/siliconight/grunt/releases) and unzip it
+anywhere. (It's unsigned, so Windows SmartScreen may warn — choose *More info →
+Run anyway*. An antivirus "reputation" prompt on first run is the same harmless
+unsigned-binary scan.)
+
+**2. Install the speech engine (once).** grunt makes spoken words with Piper, a
+free, offline, open text-to-speech tool. Install Python 3.9+ if you don't have
+it, then in a terminal:
+
+```
+pip install piper-tts
+```
+
+That's the only setup. grunt finds Piper on its own — no PATH editing, no
+environment variables. (You can skip this entirely if you only want grunts and
+screams rather than spoken words — see step 4's "grunts only" note.)
+
+**3. Open the GUI and make a talking bank.** Double-click **`grunt_gui.exe`**.
+A bank named **`starter`** ships already speaking real words, so you can play
+immediately. To make *your own* words:
+
+- Expand **"Generate voices (make a talking bank)."**
+- Give the bank a name (e.g. `my_guards`), pick a voice model (the female
+  *ljspeech* or a male voice), and click **Generate**. grunt downloads the voice
+  the first time, then bakes a bank of spoken clips. It auto-loads when done.
+
+**4. Make a sound and hear it.**
+
+- Pick a **Character** (e.g. *Gangster*, *Orc*, *Robot*) — this is the voice and
+  its texture.
+- Choose an **input** mode:
+  - **Line** — type words to speak ("hold the line").
+  - **Effort** — pick a grunt/scream from the list (yell, pain_death, laugh…).
+  - **Onomatopoeia** — type a raw sound; repeat letters for intensity
+    (`argh` → `aaargh`).
+- Click **Play** to hear it (nothing saved yet). Tick **lock seed** to make the
+  result repeatable while you tune.
+
+> *Grunts only, no Piper:* load the bundled **`heavy_brother`** bank instead. It
+> has no spoken words, but Effort and Onomatopoeia modes work fully — pure
+> grunts, screams, and reactions with zero setup.
+
+**5. Export and drop into Godot.**
+
+- Set the **Export** filename (e.g. `goblin_taunt.ogg`), keep format **ogg
+  (Vorbis)**, click **Export**.
+- Copy the `.ogg` into your Godot project's `res://` folder. It imports like any
+  other audio asset — play it with an `AudioStreamPlayer`, or let
+  [gool](https://github.com/siliconight/gool) trigger it by name. There's no
+  runtime synthesis and nothing to wire into your build; it's a plain audio file.
+
+That's the whole loop: type → hear → export → use. Everything below is the
+deeper/CLI version of the same thing.
+
+## Try it now (command line)
 
 Build (below), then hear grunt in one command — no Piper, no downloads, no setup:
 
@@ -135,13 +194,19 @@ runtime synthesis and nothing to integrate into your game's compile.
 
 ## GUI: type, hear it, export
 
-`grunt_gui` is a small desktop window: type a line, pick voice / emotion /
-style, hit **Play** to hear it (nothing written to disk), then **Export** to
-save a clip. It uses the same Engine as the CLI, so a preview sounds identical
-to what you'll bake.
+`grunt_gui` is a small desktop window and the easiest way to use grunt — see
+**Quick start on Windows** above for the click-by-click walkthrough. In short:
+pick a **Character**, choose an input mode (**Line** to speak text, **Effort**
+for a grunt/scream from `efforts.json`, **Onomatopoeia** for a raw sound where
+repeated letters add intensity), hit **Play** to hear it, then **Export** to a
+clip. "Generate voices" bakes a talking bank from a license-cleared voice with
+no command line. It uses the same Engine as the CLI, so a preview sounds
+identical to what you'll bake, and **lock seed** makes a render repeatable while
+you tune a character.
 
-It's an optional target (extra dependencies), off by default. Vendor Dear ImGui
-+ miniaudio and install GLFW per `third_party/README.md`, then:
+The Windows release zip ships `grunt_gui.exe` prebuilt. To build it yourself
+it's an optional target (extra deps), off by default — vendor Dear ImGui +
+miniaudio and install GLFW per `third_party/README.md`, then:
 
 ```
 cmake -S . -B build -DGRUNT_BUILD_GUI=ON
