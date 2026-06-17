@@ -4,6 +4,22 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.9] - 2026-06-16
+
+### Fixed (THE "Unable to find voice" root cause — Windows cmd.exe quoting)
+- grunt's `shell_quote()` wrapped piper arguments in POSIX single quotes, but
+  `std::system()` on Windows runs through **cmd.exe, which does not treat single
+  quotes as quoting** — it passes them through literally. So piper received
+  `-m 'en_US-ljspeech-high'` (quotes and all) and `--data-dir '<path>'`, couldn't
+  match a voice literally named with the quotes, and failed with "Unable to find
+  voice" — even though piper, the model, the `.onnx.json`, and the exact same
+  command (run from a real shell, which strips quotes) all worked. This is why
+  every prior fix (CLI args, data-dir, auto-detect) was individually correct yet
+  the bake still failed: the final command was right but got mangled by cmd.exe.
+  `shell_quote()` now uses double quotes on Windows (honored by cmd.exe) and
+  POSIX single quotes elsewhere. fetch-voice's downloader was unaffected (it uses
+  `powershell -Command`, which does honor single quotes).
+
 ## [0.21.8] - 2026-06-16
 
 ### Added (three vetted public-domain voices — more character range)
