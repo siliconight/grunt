@@ -4,6 +4,21 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.21.11] - 2026-06-16
+
+### Added (GUI input modes — effort + onomatopoeia, previously CLI-only)
+- The GUI now has an **input-mode selector: Line / Effort / Onomatopoeia**,
+  exposing vocalization types that were only reachable from the CLI.
+  - **Line** — spoken text (unchanged).
+  - **Effort** — a dropdown populated from data/efforts.json (pain_hit,
+    pain_death, exertion, fear, gasp, laugh, yell, alert).
+  - **Onomatopoeia** — a free-text box: type a sound and repeat letters for
+    intensity (argh -> aaargh lengthens and intensifies).
+- Onomatopoeia is correctly a free-text field, not a preset, because the
+  spelling itself is the parameter. Character preset and lock-seed apply to all
+  three modes, mirroring how the CLI composes --character with
+  --text / --effort / --onomatopoeia. Same Engine paths as the CLI — no drift.
+
 ## [0.21.10] - 2026-06-16
 
 ### Fixed (GUI window/taskbar icon now shows the grunt logo)
