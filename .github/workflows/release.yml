@@ -132,6 +132,7 @@ jobs:
           cp -r data "$pkg/"
           cp -r voices "$pkg/"
           cp -r examples "$pkg/"
+          cp -r assets "$pkg/" 2>/dev/null || true   # window/taskbar icon (grunt_icon64.png)
           cp README.md SETUP.md "$pkg/" 2>/dev/null || true
           cp setup.bat "$pkg/" 2>/dev/null || true
           # setup.bat already has CRLF endings via .gitattributes (*.bat eol=crlf),
