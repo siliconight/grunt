@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_comment": "Character presets for grunt TTS mode. A preset is a recipe over the pipeline: pick a character by name and grunt applies base_voice + pitch + fx_preset + emotion_bias (+ formant/sub when the renderer supports them). base_voice is a model id from voice_models.json. Presets sharing a base_voice differ only in pitch/FX/prosody. Fields marked 'planned' (formant_shift, sub_layer, rasp) await renderer DSP \u2014 see ROADMAP Phase 3; until then they're ignored, so those characters render as a reasonable approximation rather than failing.",
+  "_comment": "Character presets for grunt TTS mode. A preset is a recipe over the pipeline: pick a character by name and grunt applies base_voice + pitch + fx_preset + emotion_bias (+ formant/sub when the renderer supports them). base_voice is a model id from voice_models.json. Presets sharing a base_voice differ only in pitch/FX/prosody. Fields marked 'planned' (formant_shift, sub_layer, rasp) await renderer DSP — see ROADMAP Phase 3; until then they're ignored, so those characters render as a reasonable approximation rather than failing.",
   "characters": [
     {
       "id": "grunt",
@@ -92,6 +92,53 @@
       "emotion_bias": "angry",
       "formant_shift": -0.3,
       "sub_layer": true,
+      "ready": true
+    },
+    {
+      "id": "cop",
+      "display_name": "FBI / Cop (clean, clipped, radio)",
+      "base_voice": "piper-en_US-john",
+      "pitch_offset_st": -1.0,
+      "fx_preset": "radio_ps1",
+      "emotion_bias": "neutral",
+      "gain_db": 2.0,
+      "ready": true
+    },
+    {
+      "id": "jersey",
+      "display_name": "Italian New Jersey (mob, raspy mid)",
+      "base_voice": "piper-en_US-norman",
+      "pitch_offset_st": -4.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "neutral",
+      "formant_shift": -0.1,
+      "rasp": true,
+      "sub_layer": true,
+      "gain_db": 2.0,
+      "ready": true
+    },
+    {
+      "id": "russian",
+      "display_name": "Russian Mafia (deep, cold, heavy)",
+      "base_voice": "piper-en_US-norman",
+      "pitch_offset_st": -7.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "neutral",
+      "formant_shift": -0.2,
+      "rasp": true,
+      "sub_layer": true,
+      "gain_db": 1.0,
+      "ready": true
+    },
+    {
+      "id": "delco",
+      "display_name": "Delco PA Protagonist (young male, attitude)",
+      "base_voice": "piper-en_US-john",
+      "pitch_offset_st": -2.0,
+      "fx_preset": "clean_ps1",
+      "emotion_bias": "neutral",
+      "rasp": true,
+      "gain_db": 1.0,
       "ready": true
     }
   ]

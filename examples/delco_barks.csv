@@ -1,0 +1,39 @@
+key,text,character
+# grunt archetype bark set — DELCO PA PROTAGONIST (young male)
+# VOICE: the "delco" preset (John voice, lightly lowered, light rasp, NO sub —
+# a real young guy with attitude, not a monster). He's the player character, so
+# he reads clearer and younger than the heavies.
+# WRITING STYLE: Delaware County / Philly working-class. "youse/yiz", "jawn"
+# (anything), "wooder" (water), "drawn" (drawer), "hoagie", "ay yo", "boul",
+# "git", dropped g (goin, comin). Cocky, fast, profane-ish. Light spelling — he's
+# American, just regional; don't overdo it like the foreign archetypes.
+# Bake: grunt batch --csv examples/delco_barks.csv --out-dir delco_vo
+#
+# --- CONTACT / SPOTTING ---
+spot_enemy_1,ay yo we got company,delco
+spot_enemy_2,dere dey go git em,delco
+spot_enemy_3,yo heads up boul,delco
+contact_left,on ya left on ya left,delco
+contact_right,comin in from da right,delco
+# --- TALK / TAUNT ---
+taunt_1,what you lookin at jawn,delco
+taunt_2,youse picked da wrong block,delco
+taunt_3,ay this my neighborhood,delco
+taunt_4,git outta here man,delco
+# --- TAKING FIRE ---
+under_fire_1,yo dey got us pinned,delco
+under_fire_2,get down get down,delco
+reload,hold up I'm reloadin,delco
+grenade,grenade move ya feet,delco
+# --- HIT / DOWN ---
+hit_1,ay dat actually hurt,delco
+hit_2,I'm good I'm good keep goin,delco
+death_1,tell my mom I love her,delco
+# --- VICTORY ---
+kill_1,dat's what I'm talkin about,delco
+kill_2,git wrecked,delco
+all_clear,we good we good let's bounce,delco
+# --- IDLE / FLAVOR ---
+idle_1,man I could go for a hoagie,delco
+idle_2,it's brick out here yo,delco
+idle_3,ay somebody grab da wooder,delco

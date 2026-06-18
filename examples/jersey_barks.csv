@@ -1,0 +1,37 @@
+key,text,character
+# grunt archetype bark set — ITALIAN NEW JERSEY (mob)
+# VOICE: the "jersey" preset (Norman, low + raspy + sub — mid-gravel mob).
+# WRITING STYLE: the accent lives in the SPELLING, not the voice. Drop the R
+# (ova=over, heah=here), th->d (dis, dat, dere), -ing->in (talkin, walkin),
+# him->im, "youse", and Jersey-isms (fuhgeddaboudit, capisce, gabagool, madonn).
+# grunt adds the gravel; your spelling carries the cadence.
+# Bake: grunt batch --csv examples/jersey_barks.csv --out-dir jersey_vo
+#
+# --- CONTACT / SPOTTING ---
+spot_enemy_1,ey we got company ova heah,jersey
+spot_enemy_2,dere he is get im,jersey
+spot_enemy_3,yo heads up heads up,jersey
+contact_left,on da left on da left,jersey
+contact_right,he's on ya right,jersey
+# --- THREATS / TALK ---
+threat_1,you talkin to me you little rat,jersey
+threat_2,fuhgeddaboudit you're done,jersey
+threat_3,come heah lemme tell ya somethin,jersey
+threat_4,you got some nerve pal,jersey
+# --- TAKING FIRE ---
+under_fire_1,madonn dey got us pinned,jersey
+under_fire_2,get down get down ya mook,jersey
+reload,gimme a second I'm reloadin,jersey
+grenade,grenade move ya feet,jersey
+# --- HIT / DOWN ---
+hit_1,ay dat actually hoit,jersey
+hit_2,I'm bleedin ova heah,jersey
+death_1,tell my cousin sal I'm sorry,jersey
+# --- VICTORY ---
+kill_1,badda bing he's done,jersey
+kill_2,dat's what happens capisce,jersey
+all_clear,we're clear let's blow,jersey
+# --- IDLE / FLAVOR ---
+idle_1,I'm tellin ya dis neighborhood,jersey
+idle_2,you want some gabagool or what,jersey
+idle_3,fuhgeddaboudit,jersey

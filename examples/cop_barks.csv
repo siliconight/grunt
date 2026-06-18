@@ -1,0 +1,37 @@
+key,text,character
+# grunt archetype bark set — FBI / COP
+# VOICE: the "cop" preset (clean John voice, radio FX, near-neutral pitch).
+# WRITING STYLE: clipped, procedural, calm-under-pressure. Radio codes, last
+# names, command verbs. NO slang, NO dropped letters — cops sound controlled and
+# precise. The authority comes from word choice, not accent. Standard spelling.
+# Bake: grunt batch --csv examples/cop_barks.csv --out-dir cop_vo
+#
+# --- CONTACT / SPOTTING ---
+spot_enemy_1,suspect spotted move in,cop
+spot_enemy_2,we have a runner heading north,cop
+spot_enemy_3,eyes on target hold position,cop
+contact_left,contact left take cover,cop
+contact_right,hostile on the right flank,cop
+# --- COMMANDS ---
+order_advance,move up move up,cop
+order_hold,hold the line do not advance,cop
+order_breach,breaching on my count,cop
+order_down,get down on the ground now,cop
+order_clear,room clear moving on,cop
+# --- TAKING FIRE ---
+under_fire_1,taking fire requesting backup,cop
+under_fire_2,shots fired shots fired,cop
+reload,reloading cover me,cop
+grenade,grenade take cover,cop
+# --- HIT / DOWN ---
+hit_1,I'm hit but I'm good,cop
+hit_2,officer down officer down,cop
+death_1,man down get a medic,cop
+# --- VICTORY / CLEAR ---
+kill_1,target neutralized,cop
+kill_2,suspect is down,cop
+all_clear,area secure stand down,cop
+# --- IDLE / FLAVOR ---
+idle_1,stay sharp people,cop
+idle_2,keep your eyes open,cop
+idle_3,dispatch this is unit two over,cop

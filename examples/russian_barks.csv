@@ -1,0 +1,37 @@
+key,text,character
+# grunt archetype bark set — RUSSIAN MAFIA
+# VOICE: the "russian" preset (Norman, very low + sub + rasp + dark formant —
+# the deepest, coldest heavy). The DEPTH does the menace; the SPELLING does the
+# accent. Russian-English conventions: DROP articles a/an/the (kill him now),
+# th->z or d (zis, dat), w->v (vee, vill), -ing->ink (nothink), hard short
+# phrasing, no contractions. Slower delivery suits it — keep lines short.
+# Bake: grunt batch --csv examples/russian_barks.csv --out-dir russian_vo
+#
+# --- CONTACT / SPOTTING ---
+spot_enemy_1,zere he is take him,russian
+spot_enemy_2,vee have company,russian
+spot_enemy_3,I see you little man,russian
+contact_left,enemy on left,russian
+contact_right,on right on right,russian
+# --- THREATS / TALK ---
+threat_1,you make big mistake coming here,russian
+threat_2,I bury you myself,russian
+threat_3,zis is not your city,russian
+threat_4,you talk too much,russian
+# --- TAKING FIRE ---
+under_fire_1,zey pin us down,russian
+under_fire_2,get cover now,russian
+reload,vait I reload,russian
+grenade,grenade move,russian
+# --- HIT / DOWN ---
+hit_1,is nothink scratch,russian
+hit_2,I am hit keep moving,russian
+death_1,tell zem nothink,russian
+# --- VICTORY ---
+kill_1,finished,russian
+kill_2,zat is how vee do,russian
+all_clear,is clear vee go,russian
+# --- IDLE / FLAVOR ---
+idle_1,in old country zis vas easy,russian
+idle_2,patience little man,russian
+idle_3,vee vait,russian

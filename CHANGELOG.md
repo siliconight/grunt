@@ -4,6 +4,24 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.13] - 2026-06-18
+
+### Added
+- **Four NPC archetypes built into the package — voices + example bark sets.**
+  New character presets in `characters.json`: `cop` (FBI/cop — clean John voice,
+  radio FX, controlled), `jersey` (Italian New Jersey mob — Norman, low + raspy +
+  sub), `russian` (Russian mafia — deepest, cold, dark formant), and `delco`
+  (Delco PA protagonist — younger John voice, light rasp, scrappy). They use two
+  different base voices so the protagonist sounds genuinely younger than the
+  heavies; both voices auto-download.
+- **Example bark sets** in `examples/`: `cop_barks.csv`, `jersey_barks.csv`,
+  `russian_barks.csv`, `delco_barks.csv` (~22 lines each — spot/command/under-
+  fire/hit/victory/idle). Each is written in that archetype's phonetic style
+  (Jersey: ova/dere/fuhgeddaboudit; Russian: zis/vee/nothink + dropped articles;
+  Delco: jawn/wooder/boul/hoagie) with a header documenting the spelling
+  convention. grunt supplies the gruff texture; the spelling carries the accent —
+  so the example sets teach the technique, not just demonstrate the voice.
+
 ## [0.22.12] - 2026-06-18
 
 ### Added
