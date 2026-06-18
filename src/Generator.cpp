@@ -1,4 +1,5 @@
 #include <filesystem>
+#include <functional>
 #include "Generator.h"
 #include "Json.h"
 #include "Wav.h"
@@ -84,6 +85,65 @@ std::string detect_piper_cmd() {
     for (const auto& p : probes)
         if (std::system(p.test) == 0) return p.cmd;
     return "";
+}
+
+// One download path, shared by the CLI and the GUI. Pulls model.download_url to
+// dest_onnx and model.download_url_json to dest_onnx + ".json".
+FetchOutcome fetch_voice_model(const VoiceModel& model,
+                               const std::string& dest_onnx,
+                               const std::function<void(const std::string&)>& progress) {
+    FetchOutcome out;
+    auto say = [&](const std::string& s){ if (progress) progress(s); };
+    std::error_code ec;
+
+    if (std::filesystem::exists(dest_onnx, ec)) {
+        out.ok = true; out.already_present = true;
+        say("already present: " + dest_onnx);
+        return out;
+    }
+    if (model.download_url.empty()) {
+        out.err = "'" + model.id + "' has no direct download URL — it's a manual "
+                  "download (provenance). Get it from: " + model.source_url;
+        say(out.err);
+        return out;
+    }
+
+    auto fetch = [](const std::string& url, const std::string& outpath) -> bool {
+        std::string cmd;
+#if defined(_WIN32)
+        cmd = "powershell -NoProfile -Command \"try { Invoke-WebRequest -Uri '"
+            + url + "' -OutFile '" + outpath + "' -UseBasicParsing } catch { exit 1 }\"";
+#else
+        cmd = "curl -fsSL '" + url + "' -o '" + outpath + "' || wget -q '" + url + "' -O '" + outpath + "'";
+#endif
+        return std::system(cmd.c_str()) == 0;
+    };
+
+    // make sure the destination directory exists
+    std::filesystem::create_directories(std::filesystem::path(dest_onnx).parent_path(), ec);
+
+    say("downloading " + model.id + " (" + model.license + ")...");
+    if (!fetch(model.download_url, dest_onnx)) {
+        out.err = "download failed: " + model.download_url;
+        say(out.err);
+        return out;
+    }
+    if (!model.download_url_json.empty()) {
+        say("downloading voice config (.json)...");
+        if (!fetch(model.download_url_json, dest_onnx + ".json")) {
+            out.err = "model config (.json) download failed";
+            say(out.err);
+            return out;
+        }
+    }
+    if (!std::filesystem::exists(dest_onnx, ec)) {
+        out.err = "file not present after download";
+        say(out.err);
+        return out;
+    }
+    out.ok = true;
+    say("fetched: " + dest_onnx);
+    return out;
 }
 
 class PiperGenerator : public Generator {

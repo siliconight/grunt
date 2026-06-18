@@ -451,7 +451,7 @@ int cmd_generate(int argc, char** argv) {
 }
 
 // grunt version — bump with each tagged release.
-static const char* kGruntVersion = "0.22.8";
+static const char* kGruntVersion = "0.22.9";
 
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.
@@ -651,45 +651,14 @@ int cmd_fetch_voice(int argc, char** argv) {
 
     // destination: next to the binary, where generate/doctor resolve model_file
     std::string dest = resource_path(m->model_file);
-    std::error_code ec;
-    if (std::filesystem::exists(dest, ec)) {
-        std::cout << "[ok] already present: " << dest << "\n";
-        return 0;
-    }
 
-    if (m->download_url.empty()) {
-        std::cout << "'" << id << "' has no machine-verifiable direct URL, so it's a manual\n"
-                     "download (to keep provenance honest). Get these from:\n  "
-                  << m->source_url << "\nand place next to grunt:\n  "
-                  << m->model_file << "\n  " << m->model_file << ".json\n";
+    auto outcome = voc::fetch_voice_model(*m, dest,
+        [](const std::string& line){ std::cout << "  " << line << "\n"; });
+    if (!outcome.ok) {
+        std::cerr << "[X] " << outcome.err << "\n";
         return 1;
     }
-
-    auto fetch = [](const std::string& url, const std::string& out) -> bool {
-        std::string cmd;
-#if defined(_WIN32)
-        cmd = "powershell -NoProfile -Command \"try { Invoke-WebRequest -Uri '"
-            + url + "' -OutFile '" + out + "' -UseBasicParsing } catch { exit 1 }\"";
-#else
-        cmd = "curl -fsSL '" + url + "' -o '" + out + "' || wget -q '" + url + "' -O '" + out + "'";
-#endif
-        return std::system(cmd.c_str()) == 0;
-    };
-
-    std::cout << "downloading " << id << " (" << m->license << ")...\n";
-    if (!fetch(m->download_url, dest)) {
-        std::cerr << "[X] download failed: " << m->download_url << "\n";
-        return 1;
-    }
-    if (!m->download_url_json.empty()) {
-        if (!fetch(m->download_url_json, dest + ".json")) {
-            std::cerr << "[X] model config (.json) download failed\n";
-            return 1;
-        }
-    }
-    if (!std::filesystem::exists(dest, ec)) {
-        std::cerr << "[X] file not present after download\n"; return 1;
-    }
+    if (outcome.already_present) return 0;
     std::cout << "[ok] fetched: " << dest << "\n"
               << "now: grunt generate --units examples/barks.csv --voice voices/my_guards --model "
               << id << "\n";

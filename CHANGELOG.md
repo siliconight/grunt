@@ -4,6 +4,27 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.9] - 2026-06-18
+
+### Changed
+- **GUI overhaul for usability.** Reordered the window to match what people
+  actually do: pick a **Character**, choose an input mode, type a **Line**, and
+  press **Play** — all at the top. The voice-bank picker is demoted below (it's
+  only needed for Effort/Onomatopoeia modes) and now shows "(Line mode speaks any
+  text — no bank needed)" so new users aren't blocked by a prerequisite that
+  doesn't apply. Initial hint is now "Pick a character, type a line, and press
+  Play."
+
+### Added
+- **One-click voice download in the GUI.** When a synth fails only because the
+  character's voice isn't downloaded yet, the GUI now shows a "Download <voice>"
+  button that fetches it (same path as `fetch-voice`) and prompts you to press
+  Play again — instead of dead-ending with an error.
+
+### Internal
+- Extracted the voice-download logic from the `fetch-voice` CLI command into a
+  shared `voc::fetch_voice_model()` so the CLI and GUI use one code path.
+
 ## [0.22.8] - 2026-06-18
 
 ### Added
