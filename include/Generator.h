@@ -77,7 +77,8 @@ public:
     virtual GeneratedClip generate(const std::string& key,
                                    const std::string& text,
                                    const VoiceModel& model,
-                                   const std::string& out_dir) = 0;
+                                   const std::string& out_dir,
+                                   double sentence_silence = -1.0) = 0;
     virtual std::string name() const = 0;
 };
 

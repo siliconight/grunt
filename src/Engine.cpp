@@ -2,6 +2,7 @@
 #include "ResourcePath.h"
 #include "Generator.h"
 #include "Stages.h"      // voc::dsp
+#include "Prosody.h"
 #include "Wav.h"
 #include <cctype>
 #include <filesystem>
@@ -177,7 +178,11 @@ SynthResult Engine::synth_speech(const std::string& text,
         std::to_string(std::random_device{}()))).string();
     std::filesystem::create_directories(tmp_dir, ec);
 
-    GeneratedClip clip = gen->generate("line", text, *model, tmp_dir);
+    // Punctuation -> inflection: when punchy is on, rewrite the line for stronger
+    // prosody and derive a per-line sentence silence; otherwise both are no-ops.
+    std::string speak_text = punchify_text(text, opts.punchy);
+    double sil = sentence_silence_for(speak_text, opts.punchy);
+    GeneratedClip clip = gen->generate("line", speak_text, *model, tmp_dir, sil);
     delete gen;
     if (!clip.ok) {
         std::filesystem::remove_all(tmp_dir, ec);

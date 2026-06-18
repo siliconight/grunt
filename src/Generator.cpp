@@ -237,7 +237,7 @@ public:
     std::string name() const override { return "piper"; }
 
     GeneratedClip generate(const std::string& key, const std::string& text,
-                           const VoiceModel& model, const std::string& out_dir) override {
+                           const VoiceModel& model, const std::string& out_dir, double sentence_silence = -1.0) override {
         GeneratedClip c;
         c.key = key;
         c.wav_path = out_dir + "/" + key + ".wav";
@@ -280,8 +280,11 @@ public:
         cmd << piper_cmd
             << " -m " << shell_quote(voice_name)
             << " --data-dir " << shell_quote(data_dir)
-            << " -f " << shell_quote(c.wav_path)
-            << " -- " << shell_quote(text);
+            << " -f " << shell_quote(c.wav_path);
+        // punchy mode passes a per-line silence (>=0); otherwise omit -> piper default
+        if (sentence_silence >= 0.0)
+            cmd << " --sentence-silence " << sentence_silence;
+        cmd << " -- " << shell_quote(text);
         int rc = std::system(cmd.str().c_str());
         if (rc != 0) {
             c.error = "piper invocation failed (rc=" + std::to_string(rc) +
@@ -329,7 +332,8 @@ public:
     std::string name() const override { return "stub"; }
 
     GeneratedClip generate(const std::string& key, const std::string& text,
-                           const VoiceModel& model, const std::string& out_dir) override {
+                           const VoiceModel& model, const std::string& out_dir, double sentence_silence = -1.0) override {
+        (void)sentence_silence;  // bank/stub path has no prosody control
         GeneratedClip c;
         c.key = key;
         c.wav_path = out_dir + "/" + key + ".wav";

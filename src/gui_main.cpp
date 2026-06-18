@@ -202,6 +202,7 @@ int main(int argc, char** argv) {
     // first-time user isn't faced with the full toolkit. Toggle to Advanced for
     // the complete UI. piper_ready is re-checked when the user runs setup.
     bool simple_mode = true;
+    bool punchy_mode = false;  // punctuation->inflection toggle (Engine::Options.punchy)
     bool piper_ready = !voc::detect_piper_cmd().empty();
     std::string setup_status;
 
@@ -354,6 +355,7 @@ int main(int argc, char** argv) {
         opts.formant_shift  = tune.formant;
         opts.sub_layer      = tune.sub_layer;
         opts.rasp           = tune.rasp;
+        opts.punchy         = punchy_mode;
         return engine.synth_speech(line_text, speech_model, fx, opts, tune.speed);
     };
 
@@ -387,6 +389,7 @@ int main(int argc, char** argv) {
         opts.formant_shift  = tune.formant;
         opts.sub_layer      = tune.sub_layer;
         opts.rasp           = tune.rasp;
+        opts.punchy         = punchy_mode;
         // Render according to the selected input mode. Character recipe (above)
         // applies to all three; emotion may be overridden per-mode as the CLI does.
         if (input_mode == 1) {                       // Effort
@@ -493,6 +496,7 @@ int main(int argc, char** argv) {
                         } else status = "Save failed: " + err;
                     }
                 }
+                ImGui::Checkbox("punchy delivery (stronger inflection)", &punchy_mode);
                 ImGui::Spacing();
                 ImGui::TextDisabled("Tip: spell the accent out — \"ova heah\", \"nothink\", \"jawn\".");
                 ImGui::TextWrapped("%s", status.c_str());
@@ -575,6 +579,7 @@ int main(int argc, char** argv) {
         }
         ImGui::SameLine();
         if (ImGui::Button("Stop")) player.stop();
+        ImGui::Checkbox("punchy delivery (punctuation drives inflection)", &punchy_mode);
 
         // === BARK LIST: build a whole NPC's voice set, then bake it at once. ===
         // Each row is a trigger key (the filename gool plays by) + the line.

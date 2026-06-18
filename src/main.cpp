@@ -111,6 +111,7 @@ int cmd_synth(int argc, char** argv) {
     std::string fx = a.get("style", "clean_ps1");
     uint64_t seed = a.has("seed") ? std::stoull(a.get("seed")) : 0x9E3779B97F4A7C15ULL;
     Engine::Options opts;
+    opts.punchy = a.has("punchy");
     std::string char_base_voice;  // for the Piper speech path's model choice
 
     // --character applies a preset recipe (overrides emotion/style unless those
@@ -463,7 +464,7 @@ int cmd_generate(int argc, char** argv) {
 }
 
 // grunt version — bump with each tagged release.
-static const char* kGruntVersion = "0.22.18";
+static const char* kGruntVersion = "0.22.19";
 
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.
@@ -522,6 +523,7 @@ int cmd_quickstart(int argc, char** argv) {
         std::string out = out_dir + "/" + d.name + "." + ext;
         SynthResult res;
         Engine::Options opts;
+        opts.punchy = a.has("punchy");
         std::string fx = "clean_ps1";
         Emotion emo = Emotion::Neutral;
 

@@ -35,6 +35,7 @@ public:
         double formant_shift  = 0.0;  // character formant shift (-1..+1)
         bool   sub_layer      = false;// add sub-octave layer
         double rasp           = 0.0;  // 0..1 grit
+        bool   punchy         = false;// punctuation->inflection: stronger prosody
     };
 
     // Render one line. Deterministic for a fixed seed.

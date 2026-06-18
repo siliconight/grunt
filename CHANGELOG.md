@@ -4,6 +4,24 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.19] - 2026-06-18
+
+### Added
+- **"Punchy" mode — punctuation drives inflection.** A new opt-in toggle (GUI
+  checkbox + CLI `--punchy`, OFF by default so the baseline is never changed)
+  that makes simple punctuation produce stronger, more dramatic delivery. When
+  on, grunt rewrites the line for clearer prosody (a line with no terminal
+  punctuation gets a period so it isn't read flat; spacing around , . ! ? is
+  normalized so the marks register; `...` is kept intact and read as a real
+  trailing pause) and derives a per-line Piper `--sentence-silence` (stronger
+  ~0.35s default, ~0.7s when the line trails off with an ellipsis, a touch more
+  for multi-sentence barks). New `Prosody` module; threaded through
+  `Engine::Options.punchy` and the generator's `--sentence-silence`.
+
+### Notes
+- Inflection is tuned by EAR — these values are a reasoned first pass. Synthesize
+  a line punchy-on vs punchy-off and adjust to taste.
+
 ## [0.22.18] - 2026-06-18
 
 ### Added
