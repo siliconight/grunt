@@ -5,7 +5,6 @@ run-name: >-
 on:
   push:
     branches: [main]
-    tags: ['v*']
   pull_request:
     branches: [main]
 
@@ -97,10 +96,25 @@ jobs:
       - name: "Smoke bake (speech path: speak + style + real OGG/Vorbis)"
         run: |
           ./build/grunt verify --voice voices/heavy_brother
+          # woman_raspy's base voice is piper-en_US-ljspeech, which we fetched
+          # above — so this exercises the full speech + style + OGG path with a
+          # voice CI actually has (no norman needed, no fallback relied on).
           ./build/grunt batch --csv scripts/sample_lines.csv \
-            --character gangster --out-dir build/vo
+            --character woman_raspy --out-dir build/vo
           test -f build/vo/mission01_open_gate.ogg \
             || (echo "expected .ogg output not produced" && exit 1)
+
+      - name: "Missing-voice fallback (gangster wants norman -> falls back to LJ)"
+        run: |
+          # gangster's base voice (norman) isn't downloaded in CI. The bake must
+          # still produce clips by falling back to piper-en_US-ljspeech, and must
+          # print the per-line note explaining the fallback.
+          ./build/grunt batch --csv scripts/sample_lines.csv \
+            --character gangster --out-dir build/vo_fallback 2> fb.txt
+          test -f build/vo_fallback/mission01_open_gate.ogg \
+            || (echo "fallback did not produce a clip" && exit 1)
+          grep -q "not downloaded, using piper-en_US-ljspeech" fb.txt \
+            || (echo "fallback note not emitted" && exit 1)
 
       - name: Confirm codec is Vorbis (not Opus)
         run: |
