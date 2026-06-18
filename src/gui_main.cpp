@@ -197,6 +197,14 @@ int main(int argc, char** argv) {
     int format_idx = 0;    // 0 ogg, 1 wav
     bool show_advanced = false;
 
+    // Layer-2 simple mode: a non-technical "pick a character, type, Make" view
+    // that hides voice banks / styles / sliders / generate. Default ON so a
+    // first-time user isn't faced with the full toolkit. Toggle to Advanced for
+    // the complete UI. piper_ready is re-checked when the user runs setup.
+    bool simple_mode = true;
+    bool piper_ready = !voc::detect_piper_cmd().empty();
+    std::string setup_status;
+
     const char* emotions[] = { "neutral", "urgent", "angry" };
     const char* fxs[] = { "clean_ps1", "console", "radio_ps1", "monster_ps1", "robot_ps1", "muffled_mask" };
     const char* formats[] = { "ogg (Vorbis)", "wav" };
@@ -437,6 +445,73 @@ int main(int argc, char** argv) {
         ImGui::Begin("grunt", nullptr,
                      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
+
+        // --- Mode switch: Simple (default) hides the toolkit; Advanced is the
+        //     full UI. A first-time, non-technical user lives entirely in Simple.
+        ImGui::Checkbox("Simple mode", &simple_mode);
+        ImGui::Separator();
+
+        if (simple_mode) {
+            // ===== SIMPLE VIEW: set up once, pick a character, type, Make. =====
+            if (!piper_ready) {
+                ImGui::TextWrapped("First time? Set up the speech engine — this "
+                    "downloads what's needed (one time, a few minutes).");
+                if (ImGui::Button("Set up speech engine")) {
+                    setup_status = "Setting up... this can take a few minutes.";
+                    std::string cmd = voc::install_piper(
+                        [&](const std::string& line){ setup_status = line; });
+                    piper_ready = !cmd.empty();
+                    if (piper_ready) setup_status = "Speech engine ready! Pick a character and type a line.";
+                }
+                if (!setup_status.empty()) ImGui::TextWrapped("%s", setup_status.c_str());
+            } else {
+                ImGui::TextUnformatted("Character");
+                ImGui::Combo("##scharacter", &character_idx,
+                             char_label_ptrs.data(), (int)char_label_ptrs.size());
+                if (character_idx != tuned_for_idx) {
+                    load_tuning_from_character(char_ids[character_idx]);
+                    tuned_for_idx = character_idx;
+                }
+                input_mode = 0;  // Simple mode is always Line (spoken text)
+                ImGui::TextUnformatted("What do they say?");
+                ImGui::SetNextItemWidth(380);
+                ImGui::InputText("##stext", text, sizeof(text));
+
+                if (ImGui::Button("Make / Play") && do_synth())
+                    player.play(last.audio.samples);
+                ImGui::SameLine();
+                if (ImGui::Button("Save .ogg")) {
+                    if (do_synth()) {
+                        AudioFormat fmt = ogg_supported() ? AudioFormat::Ogg : AudioFormat::Wav;
+                        const char* ext = (fmt == AudioFormat::Ogg) ? "ogg" : "wav";
+                        std::string fn = std::string(char_ids[character_idx].empty()
+                                          ? "line" : char_ids[character_idx]) + "." + ext;
+                        std::string err;
+                        if (write_audio(fn, last.audio, fmt, 0.4f, err)) {
+                            std::error_code ec;
+                            status = "Saved: " + std::filesystem::absolute(fn, ec).string();
+                        } else status = "Save failed: " + err;
+                    }
+                }
+                ImGui::Spacing();
+                ImGui::TextDisabled("Tip: spell the accent out — \"ova heah\", \"nothink\", \"jawn\".");
+                ImGui::TextWrapped("%s", status.c_str());
+
+                // missing-voice -> one-click download (shared with Advanced below)
+                if (!needs_voice.empty()) {
+                    const VoiceModel* vm = voice_reg.find(needs_voice);
+                    if (vm && !vm->download_url.empty()) {
+                        if (ImGui::Button(("Download " + needs_voice + " voice").c_str())) {
+                            std::string dest = voc::resource_path(vm->model_file);
+                            auto oc = voc::fetch_voice_model(*vm, dest,
+                                [&](const std::string& line){ fetch_status = line; });
+                            if (oc.ok) { status = "Got the voice — press Make again."; needs_voice.clear(); }
+                            else status = "Download failed: " + oc.err;
+                        }
+                    }
+                }
+            }
+        } else {
 
         // === PRIMARY FLOW: pick a character, type a line, hear it. ===
         // Line mode speaks any text through Piper with no bank needed, so it
@@ -730,6 +805,8 @@ int main(int argc, char** argv) {
                                    vm->source_url.c_str());
             }
         }
+
+        }  // end Advanced-mode (else) wrapper
 
         ImGui::End();
 

@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.18] - 2026-06-18
+
+### Added
+- **Simple mode — pick a character, type a line, get game-ready VO.** The GUI now
+  opens in a clean Simple view (toggle to Advanced for the full toolkit). Simple
+  mode is the whole non-technical flow in one screen: if the speech engine isn't
+  set up, a single "Set up speech engine" button installs it (calls the v0.22.17
+  bootstrap — downloads Python + Piper on a bare machine, no expertise needed);
+  then it's just a Character dropdown (the archetypes), a "What do they say?" box,
+  and "Make / Play" + "Save .ogg". Missing voices download in one click. All the
+  voice-bank / style / sliders / generate / bark-list machinery is hidden in
+  Advanced. This is Layer 2 of making grunt usable by anyone — the GUI wall.
+
 ## [0.22.17] - 2026-06-18
 
 ### Added
