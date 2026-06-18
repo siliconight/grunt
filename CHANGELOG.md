@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.8] - 2026-06-18
+
+### Added
+- **Norman voice is now auto-downloadable.** Added `download_url` and
+  `download_url_json` for `piper-en_US-norman` to `data/voice_models.json`, so
+  `grunt fetch-voice --model piper-en_US-norman` pulls both the `.onnx` and
+  `.onnx.json` directly instead of printing manual-download steps. This makes the
+  default MALE gangster timbre one-click: `--character gangster` (no `--model`
+  override) now works after a single `fetch-voice`. NOTE: this is technical
+  capability only — Norman's public-domain provenance (creator attestation +
+  this redistribution host) is unchanged and should be re-confirmed before any
+  commercial release.
+
 ## [0.22.7] - 2026-06-18
 
 ### Fixed
