@@ -4,6 +4,20 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.22] - 2026-06-18
+
+### Added
+- **`grunt selftest` — smoke-test the whole voice surface before you ear-check
+  it.** Bakes one canonical line through every character x every FX preset, then
+  measures each clip for MECHANICAL defects — near-silence, clipping, truncation,
+  DC offset, and loudness outliers (vs the matrix median) — plus synth failures
+  and missing voices. Prints a summary + an "ear-check these" shortlist of only
+  the anomalies, and writes a full keepable report (every combo's duration, peak,
+  RMS, clip%). So instead of clicking through dozens of combos by ear, you listen
+  to the handful flagged as off. Catches BROKEN, not bad-sounding — aesthetic
+  quality is still your ear's call (no external deps; all metrics from the sample
+  buffer). Flags: `--text`, `--punchy`, `--report <path>`.
+
 ## [0.22.21] - 2026-06-18
 
 ### Fixed

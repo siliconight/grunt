@@ -17,6 +17,8 @@
 
 #include <iostream>
 #include <fstream>
+#include <iomanip>
+#include <cmath>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -464,7 +466,7 @@ int cmd_generate(int argc, char** argv) {
 }
 
 // grunt version — bump with each tagged release.
-static const char* kGruntVersion = "0.22.21";
+static const char* kGruntVersion = "0.22.22";
 
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.
@@ -643,6 +645,143 @@ int cmd_coverage(int argc, char** argv) {
 }
 
 // fetch-voice — download a registered voice model's files to where grunt looks
+// Smoke-test the whole voice surface: bake one canonical line through every
+// character x every FX preset, measure each result for MECHANICAL defects
+// (silence, clipping, truncation, loudness outliers, DC offset, synth failure),
+// and report only the anomalies so a human ear-checks the suspects, not all of
+// them. This catches BROKEN, not "bad-sounding" — quality is still the user's
+// ear. No external deps: every metric is computed from the sample buffer.
+struct ClipHealth {
+    std::string character, fx;
+    bool ok = false;
+    std::string note;          // failure reason, if any
+    double dur_s = 0, peak_db = -120, rms = 0, dc = 0, clip_frac = 0;
+    std::vector<std::string> flags;
+};
+
+int cmd_selftest(int argc, char** argv) {
+    Args a = parse_args(argc, argv, 2);
+    std::string line = a.get("text", "intruder spotted, hold your fire");
+    bool punchy = a.has("punchy");
+    std::string report_path = a.get("report", "grunt_selftest_report.txt");
+
+    std::string err;
+    CharacterLibrary lib;
+    if (!lib.load(resource_path("data/characters.json"), err)) {
+        std::cerr << "characters: " << err << "\n"; return 1;
+    }
+    const char* fxs[] = { "clean_ps1", "console", "radio_ps1",
+                          "monster_ps1", "robot_ps1", "muffled_mask" };
+
+    Engine engine;
+    std::vector<ClipHealth> results;
+    std::cout << "Baking matrix: " << lib.all().size() << " characters x 6 FX = "
+              << (lib.all().size() * 6) << " combos...\n";
+
+    for (const auto& cp : lib.all()) {
+        for (const char* fx : fxs) {
+            ClipHealth h; h.character = cp.id; h.fx = fx;
+            Engine::Options opts;
+            opts.extra_pitch_st = cp.pitch_offset_st;
+            opts.extra_gain_db  = cp.gain_db;
+            opts.formant_shift  = cp.formant_shift;
+            opts.sub_layer      = cp.sub_layer;
+            opts.rasp           = cp.rasp ? 0.6 : 0.0;
+            opts.punchy         = punchy;
+            std::string model = cp.base_voice.empty() ? "piper-en_US-ljspeech" : cp.base_voice;
+            SynthResult r = engine.synth_speech(line, model, fx, opts);
+            if (!r.ok) {
+                h.ok = false;
+                h.note = r.missing_model.empty() ? r.error
+                        : ("voice not downloaded: " + r.missing_model);
+                results.push_back(h);
+                continue;
+            }
+            // --- metrics from the sample buffer ---
+            const auto& s = r.audio.samples;
+            int sr = r.audio.sample_rate > 0 ? r.audio.sample_rate : 22050;
+            h.ok = true;
+            h.dur_s = (double)s.size() / sr;
+            h.peak_db = r.peak_dbfs;
+            double sumsq = 0, sum = 0; size_t clipped = 0;
+            for (float v : s) {
+                sumsq += (double)v * v; sum += v;
+                if (v >= 0.999f || v <= -0.999f) ++clipped;
+            }
+            h.rms = s.empty() ? 0 : std::sqrt(sumsq / s.size());
+            h.dc  = s.empty() ? 0 : sum / s.size();
+            h.clip_frac = s.empty() ? 0 : (double)clipped / s.size();
+            results.push_back(h);
+        }
+    }
+
+    // Median peak among successful clips, for outlier detection.
+    std::vector<double> peaks;
+    for (auto& h : results) if (h.ok) peaks.push_back(h.peak_db);
+    double median_peak = 0;
+    if (!peaks.empty()) {
+        std::sort(peaks.begin(), peaks.end());
+        median_peak = peaks[peaks.size() / 2];
+    }
+
+    // --- flag anomalies ---
+    int flagged = 0, failed = 0;
+    for (auto& h : results) {
+        if (!h.ok) { ++failed; continue; }
+        if (h.rms < 0.003)            h.flags.push_back("near-silent");
+        if (h.clip_frac > 0.005)      h.flags.push_back("clipping");
+        if (h.dur_s < 0.20)           h.flags.push_back("too-short");
+        if (std::fabs(h.dc) > 0.02)   h.flags.push_back("dc-offset");
+        if (!peaks.empty() && h.peak_db < median_peak - 12.0) h.flags.push_back("quiet-outlier");
+        if (!peaks.empty() && h.peak_db > median_peak + 12.0) h.flags.push_back("loud-outlier");
+        if (!h.flags.empty()) ++flagged;
+    }
+
+    // --- write the keepable report ---
+    std::ofstream rep(report_path);
+    rep << "grunt selftest report\n";
+    rep << "line: \"" << line << "\"  punchy: " << (punchy ? "on" : "off") << "\n";
+    rep << "combos: " << results.size()
+        << "   failed: " << failed << "   flagged: " << flagged << "\n\n";
+    rep << "STATUS  CHARACTER        FX             DUR    PEAK    RMS     CLIP%   NOTES\n";
+    for (auto& h : results) {
+        std::string status = !h.ok ? "FAIL" : (h.flags.empty() ? "ok" : "FLAG");
+        rep << std::left << std::setw(7) << status << " "
+            << std::setw(16) << h.character << " " << std::setw(14) << h.fx << " ";
+        if (h.ok) {
+            char buf[128];
+            std::snprintf(buf, sizeof(buf), "%5.2fs %6.1f %6.3f %6.2f%%  ",
+                          h.dur_s, h.peak_db, h.rms, h.clip_frac * 100.0);
+            rep << buf;
+            for (auto& f : h.flags) rep << f << " ";
+        } else rep << h.note;
+        rep << "\n";
+    }
+    rep.close();
+
+    // --- summary line to stdout ---
+    std::cout << "Done. " << results.size() << " combos: "
+              << (results.size() - flagged - failed) << " ok, "
+              << flagged << " flagged, " << failed << " failed.\n";
+    if (flagged || failed) {
+        std::cout << "Ear-check these:\n";
+        for (auto& h : results) {
+            if (!h.ok)
+                std::cout << "  FAIL  " << h.character << " / " << h.fx << "  (" << h.note << ")\n";
+            else if (!h.flags.empty()) {
+                std::cout << "  FLAG  " << h.character << " / " << h.fx << "  (";
+                for (size_t i = 0; i < h.flags.size(); ++i)
+                    std::cout << h.flags[i] << (i + 1 < h.flags.size() ? ", " : "");
+                std::cout << ")\n";
+            }
+        }
+    } else {
+        std::cout << "No mechanical anomalies. (Quality is still your ear's call.)\n";
+    }
+    std::cout << "Full report: " << report_path << "\n";
+    return 0;
+}
+
 int cmd_setup_piper(int argc, char** argv) {
     (void)argc; (void)argv;
     std::cout << "Setting up the speech engine (Piper). On a machine with no\n"
@@ -843,6 +982,7 @@ int main(int argc, char** argv) {
     if (cmd == "doctor")     return cmd_doctor(argc, argv);
     if (cmd == "fetch-voice") return cmd_fetch_voice(argc, argv);
     if (cmd == "setup-piper") return cmd_setup_piper(argc, argv);
+    if (cmd == "selftest")    return cmd_selftest(argc, argv);
     if (cmd == "synth")    return cmd_synth(argc, argv);
     if (cmd == "batch")    return cmd_batch(argc, argv);
     if (cmd == "generate") return cmd_generate(argc, argv);
