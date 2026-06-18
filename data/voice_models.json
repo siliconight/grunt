@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "_comment": "Allowlist of license-cleared generator voice models. `generate` only uses models listed here unless --allow-unverified is passed. Each entry is diligence done ONCE, then enforced forever by the ship gate. Adding a model means you have read its license AND its training-data license and confirmed commercial + redistributable rights. NOT legal advice \u2014 good-faith reads of published model cards; confirm before a commercial release.",
+  "_comment": "Allowlist of license-cleared generator voice models. `generate` only uses models listed here unless --allow-unverified is passed. Each entry is diligence done ONCE, then enforced forever by the ship gate. Adding a model means you have read its license AND its training-data license and confirmed commercial + redistributable rights. NOT legal advice — good-faith reads of published model cards; confirm before a commercial release.",
   "models": [
     {
       "id": "piper-en_US-ljspeech",
@@ -30,7 +30,9 @@
       "dataset": "LibriVox public-domain recordings (~15.5h), compiled by Bryce Beattie",
       "dataset_license": "public domain",
       "voice_traits": "US English, male, single speaker, trained from scratch (1200 epochs, medium)",
-      "notes": "Default MALE base. Same creator as the LJ Speech voice (Bryce Beattie); trained FROM SCRATCH on public-domain LibriVox recordings, dedicated public domain, creator grants use for 'any legal and ethical purpose.' CAVEAT: provenance here is the creator's own attestation on his personal site (not an institutional HuggingFace model card like LJ Speech) \u2014 credible and same trusted source, but a personal statement; re-confirm before commercial release. Download norman.onnx + .onnx.json from source_url. Alternatives from same source: 'John' (finetuned from Kristin \u2014 extra chain link), 'Bryce' (creator's own voice, ~750 samples)."
+      "notes": "Default MALE base. Same creator as the LJ Speech voice (Bryce Beattie); trained FROM SCRATCH on public-domain LibriVox recordings, dedicated public domain, creator grants use for 'any legal and ethical purpose.' CAVEAT: provenance here is the creator's own attestation on his personal site (not an institutional HuggingFace model card like LJ Speech) — credible and same trusted source, but a personal statement; re-confirm before commercial release. Download norman.onnx + .onnx.json from source_url. Alternatives from same source: 'John' (finetuned from Kristin — extra chain link), 'Bryce' (creator's own voice, ~750 samples). Direct download now available (sfo3.digitaloceanspaces.com/bkmdls) so fetch-voice can auto-fetch; re-confirm provenance + this host's redistribution permission before COMMERCIAL release.",
+      "download_url": "https://sfo3.digitaloceanspaces.com/bkmdls/norman.onnx",
+      "download_url_json": "https://sfo3.digitaloceanspaces.com/bkmdls/norman.onnx.json"
     },
     {
       "id": "piper-en_GB-cori",
@@ -45,7 +47,7 @@
       "dataset": "LibriVox public-domain recordings (~24h), compiled by Bryce Beattie",
       "dataset_license": "public domain",
       "voice_traits": "UK English, female, single speaker, trained from scratch (500 epochs, high)",
-      "notes": "Clean chain: trained FROM SCRATCH on public-domain LibriVox recordings, creator-dedicated public domain. Same trusted creator as LJ/Norman (Bryce Beattie). CAVEAT: creator's personal-site attestation, not an institutional model card \u2014 credible, same source, but re-confirm before commercial release. Good-faith read, NOT legal advice; gate enforces."
+      "notes": "Clean chain: trained FROM SCRATCH on public-domain LibriVox recordings, creator-dedicated public domain. Same trusted creator as LJ/Norman (Bryce Beattie). CAVEAT: creator's personal-site attestation, not an institutional model card — credible, same source, but re-confirm before commercial release. Good-faith read, NOT legal advice; gate enforces."
     },
     {
       "id": "piper-en_US-kristin",
@@ -75,22 +77,22 @@
       "dataset": "LibriVox public-domain recordings (~12.5h), compiled by Bryce Beattie",
       "dataset_license": "public domain",
       "voice_traits": "US English, male, single speaker; FINETUNED from 'Kristin' (not from scratch)",
-      "notes": "Clean chain BUT note the extra link: FINETUNED from the Kristin voice (itself clean public-domain LibriVox), on ~12.5h public-domain LibriVox. Base + data both public domain, so chain is clean, but it's a fine-tune lineage rather than pure from-scratch \u2014 documented for diligence. Same creator (Bryce Beattie), personal-site attestation. Good-faith read, NOT legal advice; gate enforces."
+      "notes": "Clean chain BUT note the extra link: FINETUNED from the Kristin voice (itself clean public-domain LibriVox), on ~12.5h public-domain LibriVox. Base + data both public domain, so chain is clean, but it's a fine-tune lineage rather than pure from-scratch — documented for diligence. Same creator (Bryce Beattie), personal-site attestation. Good-faith read, NOT legal advice; gate enforces."
     }
   ],
   "_excluded_models": [
     {
       "id": "piper-en_GB-jenny-dioco",
-      "reason_excluded": "Dataset (Jenny/Dioco) is ATTRIBUTION-REQUIRED, CC-BY-style \u2014 NOT public domain. Creator imposes no further restriction but cannot launder the underlying dataset's CC-BY obligation. Tonally appealing (Irish UK female) but excluded from the shippable/clean tier. Would require deliberate attribution-surfacing policy to use commercially.",
+      "reason_excluded": "Dataset (Jenny/Dioco) is ATTRIBUTION-REQUIRED, CC-BY-style — NOT public domain. Creator imposes no further restriction but cannot launder the underlying dataset's CC-BY obligation. Tonally appealing (Irish UK female) but excluded from the shippable/clean tier. Would require deliberate attribution-surfacing policy to use commercially.",
       "source_url": "https://brycebeattie.com/files/tts/",
       "dataset_license": "CC BY-style (attribution required)"
     },
     {
       "id": "piper-en_US-clean100",
-      "reason_excluded": "Trained on LibriTTS-r, which is CC BY 4.0 \u2014 attribution required, NOT public domain. Excluded from the clean/shippable tier for the same reason as Jenny: creator's friendly grant does not override the dataset's CC-BY.",
+      "reason_excluded": "Trained on LibriTTS-r, which is CC BY 4.0 — attribution required, NOT public domain. Excluded from the clean/shippable tier for the same reason as Jenny: creator's friendly grant does not override the dataset's CC-BY.",
       "source_url": "https://brycebeattie.com/files/tts/",
       "dataset_license": "CC BY 4.0 (LibriTTS-r)"
     }
   ],
-  "_notes_other_voices": "ManyVoice (16-speaker, public-domain LibriVox, clean) NOT added pending multi-speaker addressing support. 'Bryce' (creator's own voice, public domain) clean license-wise but is a named individual's cloned voice \u2014 publicity-rights consideration separate from copyright; deferred."
+  "_notes_other_voices": "ManyVoice (16-speaker, public-domain LibriVox, clean) NOT added pending multi-speaker addressing support. 'Bryce' (creator's own voice, public domain) clean license-wise but is a named individual's cloned voice — publicity-rights consideration separate from copyright; deferred."
 }
