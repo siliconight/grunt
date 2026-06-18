@@ -564,6 +564,37 @@ int main(int argc, char** argv) {
             ImGui::TextUnformatted("Effort");
             ImGui::Combo("##effort", &effort_idx, effort_label_ptrs.data(),
                          (int)effort_label_ptrs.size());
+            // Effort is the one mode that needs a loaded sound bank (it stitches
+            // grunt units, not Piper speech). If none's loaded, make it a
+            // one-click fix instead of a dead-end "needs a bank" message.
+            if (!engine.voice_loaded()) {
+                ImGui::TextWrapped("Effort grunts need a sound bank (they're stitched, "
+                                   "not spoken). Make one now:");
+                if (piper_cmd.empty()) {
+                    ImGui::TextDisabled("(Set up the speech engine first — Simple mode's "
+                                        "\"Set up speech engine\" button, or setup.bat.)");
+                } else if (ImGui::Button("Generate a sound bank")) {
+#if defined(_WIN32)
+                    _putenv_s("GRUNT_PIPER_CMD", piper_cmd.c_str());
+#else
+                    setenv("GRUNT_PIPER_CMD", piper_cmd.c_str(), 1);
+#endif
+                    GenerateOptions opt;
+                    opt.units_csv     = voc::resource_path("examples/barks.csv");
+                    opt.voice_dir     = voc::resource_path("voices/effort_bank");
+                    opt.model_id      = gen_models[gen_model_idx];
+                    opt.registry_path = voc::resource_path("data/voice_models.json");
+                    opt.unit_type     = "word";
+                    GenerateResult r = generate_bank(opt);
+                    if (r.ok) {
+                        std::string err;
+                        if (engine.load_voice(opt.voice_dir, err)) {
+                            if (!player_ready) player_ready = player.init(engine.sample_rate());
+                            status = "Sound bank ready — pick an effort and press Play.";
+                        } else status = "Bank generated but load failed: " + err;
+                    } else status = "Bank generation failed: " + r.error;
+                }
+            }
         } else {                                     // Onomatopoeia — free text
             ImGui::TextUnformatted("Onomatopoeia");
             ImGui::InputText("##onomat", onomatopoeia, sizeof(onomatopoeia));

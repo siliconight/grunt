@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.21] - 2026-06-18
+
+### Fixed
+- **Effort mode no longer dead-ends when no sound bank is loaded.** Effort grunts
+  (yell, pain_death, laugh, ...) are the one mode that stitches grunt units rather
+  than speaking through Piper, so they need a loaded sound bank — previously a
+  user picking an effort with no bank just got a passive "needs a voice bank"
+  message and was stuck. Now the Effort dropdown shows a one-click "Generate a
+  sound bank" button (reuses the same generate_bank path as "Generate voices"),
+  which makes and loads a bank so the effort can play. If the speech engine isn't
+  set up yet, it points the user to do that first.
+
 ## [0.22.20] - 2026-06-18
 
 ### Fixed
