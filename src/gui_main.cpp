@@ -234,6 +234,14 @@ int main(int argc, char** argv) {
     } tune;
     bool tuning_dirty = false;     // true once the user has nudged a slider
     int  tuned_for_idx = -1;       // which character_idx the sliders were loaded from
+
+    // Bark list — a freeform set of NPC lines to bake to a folder in one pass.
+    // Each entry is a trigger key (the filename gool plays by) + the spoken text.
+    // Built in-app; not tied to any CSV. Baked with the current character+tuning.
+    struct Bark { char key[64]; char text[256]; };
+    std::vector<Bark> barks;
+    char bark_out_dir[256] = "delco_vo";
+    std::string bake_status;
     auto load_tuning_from_character = [&](const std::string& cid) {
         tune = Tuning{};                       // neutral defaults (the "(none)" case)
         if (!cid.empty()) {
@@ -318,6 +326,28 @@ int main(int argc, char** argv) {
     SynthResult last; // cached last render for export
     std::string needs_voice;   // non-empty when last synth failed only for a missing voice
     std::string fetch_status;  // progress text for the download button
+
+    // Synthesize an arbitrary line with the CURRENT character + tuning sliders,
+    // the same way Line mode does. Used by the bark-list bake. Pure (doesn't
+    // touch `last`/`status`), so it's safe to call in a loop.
+    auto synth_text = [&](const std::string& line_text) -> SynthResult {
+        Engine::Options opts;
+        std::string fx = fxs[fx_idx];
+        const std::string& cid = char_ids[character_idx];
+        std::string speech_model = "piper-en_US-ljspeech";
+        if (!cid.empty()) {
+            if (const CharacterPreset* cp = char_lib.find(cid)) {
+                fx = cp->fx_preset;
+                if (!cp->base_voice.empty()) speech_model = cp->base_voice;
+            }
+        }
+        opts.extra_pitch_st = tune.pitch_st;
+        opts.extra_gain_db  = tune.gain_db;
+        opts.formant_shift  = tune.formant;
+        opts.sub_layer      = tune.sub_layer;
+        opts.rasp           = tune.rasp;
+        return engine.synth_speech(line_text, speech_model, fx, opts, tune.speed);
+    };
 
     auto do_synth = [&]() -> bool {
         // Effort mode is the only one that still needs a loaded voice bank (it
@@ -470,6 +500,73 @@ int main(int argc, char** argv) {
         }
         ImGui::SameLine();
         if (ImGui::Button("Stop")) player.stop();
+
+        // === BARK LIST: build a whole NPC's voice set, then bake it at once. ===
+        // Each row is a trigger key (the filename gool plays by) + the line.
+        // Baked with the CURRENT character + tuning, so the whole set is
+        // consistent. The "+ add current line" button pulls the Line box in as a
+        // new bark so you can audition-then-add.
+        ImGui::Separator();
+        if (ImGui::CollapsingHeader("Bark list (bake a whole NPC's voice set)")) {
+            if (ImGui::Button("+ add current line") && text[0]) {
+                Bark b{};
+                std::snprintf(b.key, sizeof(b.key), "bark_%d", (int)barks.size() + 1);
+                std::snprintf(b.text, sizeof(b.text), "%s", text);
+                barks.push_back(b);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("+ blank row")) { barks.push_back(Bark{}); }
+
+            int remove_idx = -1;
+            for (int i = 0; i < (int)barks.size(); ++i) {
+                ImGui::PushID(i);
+                ImGui::SetNextItemWidth(120);
+                ImGui::InputText("##key", barks[i].key, sizeof(barks[i].key));
+                ImGui::SameLine();
+                ImGui::SetNextItemWidth(260);
+                ImGui::InputText("##btext", barks[i].text, sizeof(barks[i].text));
+                ImGui::SameLine();
+                if (ImGui::Button("Play") && barks[i].text[0]) {
+                    SynthResult r = synth_text(barks[i].text);
+                    if (r.ok) { last = r; player.play(last.audio.samples); }
+                    else if (!r.missing_model.empty()) {
+                        needs_voice = r.missing_model;
+                        status = "Voice '" + needs_voice + "' isn't downloaded yet.";
+                    } else status = "Synth failed: " + r.error;
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("X")) remove_idx = i;
+                ImGui::PopID();
+            }
+            if (remove_idx >= 0) barks.erase(barks.begin() + remove_idx);
+
+            if (!barks.empty()) {
+                ImGui::Separator();
+                ImGui::SetNextItemWidth(260);
+                ImGui::InputText("out folder", bark_out_dir, sizeof(bark_out_dir));
+                if (ImGui::Button("Bake all")) {
+                    AudioFormat fmt = (format_idx == 0) ? AudioFormat::Ogg : AudioFormat::Wav;
+                    if (fmt == AudioFormat::Ogg && !ogg_supported()) {
+                        bake_status = "This build lacks libvorbis — switch format to wav.";
+                    } else {
+                        std::error_code ec;
+                        std::filesystem::create_directories(bark_out_dir, ec);
+                        const char* ext = (fmt == AudioFormat::Ogg) ? "ogg" : "wav";
+                        int ok = 0, fail = 0; std::string werr;
+                        for (auto& b : barks) {
+                            if (!b.key[0] || !b.text[0]) { ++fail; continue; }
+                            SynthResult r = synth_text(b.text);
+                            if (!r.ok) { ++fail; continue; }
+                            std::string path = std::string(bark_out_dir) + "/" + b.key + "." + ext;
+                            if (write_audio(path, r.audio, fmt, 0.4f, werr)) ++ok; else ++fail;
+                        }
+                        bake_status = "Baked " + std::to_string(ok) + " clip(s) -> "
+                                    + bark_out_dir + (fail ? ("  (" + std::to_string(fail) + " skipped)") : "");
+                    }
+                }
+                if (!bake_status.empty()) { ImGui::SameLine(); ImGui::TextDisabled("%s", bake_status.c_str()); }
+            }
+        }
 
         // === SECONDARY: voice bank (only needed for Effort/Onomatopoeia) ===
         ImGui::Separator();

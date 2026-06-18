@@ -4,6 +4,20 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.12] - 2026-06-18
+
+### Added
+- **Bark list in the GUI — build and bake a whole NPC's voice set.** A new "Bark
+  list" panel lets you assemble a set of lines, each with a trigger key (the
+  filename gool plays by) and the spoken text. "+ add current line" pulls the
+  Line box in as a new bark (audition, then add); "+ blank row" adds an empty
+  one. Play any row to hear it with the current character + tuning, edit keys and
+  text inline, remove rows with X. "Bake all" writes every bark to
+  `<key>.<ext>` in the chosen output folder in one pass — all sharing the same
+  tuned voice, so the NPC sounds consistent. Drop the folder into Godot and gool
+  fires the clips by key. Session-only: the list lives in memory (no CSV), so
+  it's for building and baking a set in one sitting; the baked clips persist.
+
 ## [0.22.11] - 2026-06-18
 
 ### Added
