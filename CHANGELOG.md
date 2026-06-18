@@ -4,6 +4,24 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.6] - 2026-06-18
+
+### Fixed
+- **CI now triggers only on pushes to `main`, not on tags.** The recurring
+  "CI runs an old workflow against new code" failures were caused by the git
+  tag carrying a stale `.github/workflows/ci.yml` (from the rebase/force-tag
+  release flow) while `main` had the current one — and CI fired on the tag.
+  Tags are now release markers that don't start CI runs; `main` always has the
+  correct workflow.
+- CI smoke bake uses the **woman_raspy** character (whose base voice is
+  `piper-en_US-ljspeech`, which CI fetches), so the speech + style + OGG path is
+  tested with a voice CI actually has — no `norman` needed.
+
+### Added
+- CI step that explicitly verifies the **missing-voice fallback**: baking with
+  `--character gangster` (whose `norman` voice isn't downloaded in CI) still
+  produces clips by falling back to `piper-en_US-ljspeech`, and emits the note.
+
 ## [0.22.5] - 2026-06-17
 
 ### Changed
