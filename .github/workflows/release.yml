@@ -150,7 +150,7 @@ jobs:
           # so git checks it out CRLF and this copy preserves it — no conversion
           # needed (a previous inline-PowerShell attempt broke the bash step).
           # a friendly launch note
-          printf 'Double-click grunt_gui.exe to start.\nFirst launch: Windows may show a SmartScreen notice (unsigned app) -- click More info > Run anyway.\n\nThe "starter" voice bank speaks REAL WORDS out of the box - just pick it in the\nVoice bank dropdown, choose a character, and Play. (The "heavy_brother" demo\nbank is intentionally grunts-only.)\n\nTo make your OWN words: use the Generate voices section in the app, or run\nsetup.bat. No install needed; everything stays in this folder.\n' > "$pkg/READ ME FIRST.txt"
+          printf 'Double-click grunt_gui.exe to start.\nFirst launch: Windows may show a SmartScreen notice (unsigned app) -- click More info > Run anyway.\n\nThe "starter" voice bank speaks REAL WORDS out of the box - just pick a\ncharacter and Play.\n\nFOR FOUR READY-MADE NPC VOICES: run setup.bat. It installs the speech engine,\ndownloads the public-domain voices, and bakes four NPC bark sets you can drop\nstraight into a game:\n  cop_vo\\     FBI / cop      (clean, radio)\n  jersey_vo\\  Italian NJ mob (raspy, mid)\n  russian_vo\\ Russian mafia  (deep, cold)\n  delco_vo\\   Delco PA lead  (young, scrappy)\n\nThen in the app: pick cop / jersey / russian / delco from the Character list,\ntype a line, tune it with the sliders, and use the Bark list panel to build and\nbake your own sets. No install needed; everything stays in this folder.\n' > "$pkg/READ ME FIRST.txt"
           7z a "$pkg.zip" "$pkg"
           echo "GRUNT_WIN_ZIP=$pkg.zip" >> "$GITHUB_ENV"
 

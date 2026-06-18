@@ -1,10 +1,11 @@
 @echo off
 REM ===========================================================================
-REM  grunt - first-bank setup for Windows
+REM  grunt - NPC archetype setup for Windows
 REM
-REM  Downloads Piper + a public-domain voice, builds a real talking bank, and
-REM  plays a spoken word. Run from the unzipped grunt package (where grunt.exe
-REM  lives). Re-running is safe (skips what's already downloaded).
+REM  Installs Piper, downloads the three public-domain voices the archetypes
+REM  use (Norman / John / Bryce), and bakes all four ready-to-use NPC bark sets
+REM  (cop, jersey, russian, delco) into their own folders. Run from the
+REM  unzipped grunt package (where grunt.exe lives). Re-running is safe.
 REM
 REM  The window STAYS OPEN at the end (success or failure) so you can read it.
 REM ===========================================================================
@@ -13,7 +14,7 @@ cd /d "%~dp0"
 
 echo(
 echo ============================================
-echo   grunt first-bank setup
+echo   grunt - NPC archetype setup
 echo ============================================
 echo(
 
@@ -25,10 +26,8 @@ if not exist "%GRUNT%" (
 )
 echo [ok] found grunt.exe
 
-REM --- 1. Piper engine (modern Python package; the old standalone exe crashes
-REM        with a ucrtbase error on current Windows) -------------------------
+REM --- 1. Piper engine (modern Python package) -----------------------------
 set "PIPER_CMD="
-REM is a usable piper already available?
 piper --help >NUL 2>&1 && set "PIPER_CMD=piper"
 if not defined PIPER_CMD ( python -m piper --help >NUL 2>&1 && set "PIPER_CMD=python -m piper" )
 if not defined PIPER_CMD ( py -m piper --help >NUL 2>&1 && set "PIPER_CMD=py -m piper" )
@@ -36,21 +35,19 @@ if not defined PIPER_CMD ( py -m piper --help >NUL 2>&1 && set "PIPER_CMD=py -m 
 if defined PIPER_CMD (
   echo [ok] Piper already available via: !PIPER_CMD!
 ) else (
-  echo [1/6] Installing Piper TTS engine via pip...
-  REM need Python + pip
+  echo [1/3] Installing Piper TTS engine via pip...
   set "PY="
   python --version >NUL 2>&1 && set "PY=python"
   if not defined PY ( py --version >NUL 2>&1 && set "PY=py" )
   if not defined PY (
     echo [X] Python not found. Install Python 3.9+ from https://python.org
-    echo     (check "Add python.exe to PATH" during install^), then re-run setup.bat.
+    echo     ^(check "Add python.exe to PATH" during install^), then re-run setup.bat.
     goto :fail
   )
   !PY! -m pip install --quiet --upgrade piper-tts
   if errorlevel 1 ( echo [X] pip install piper-tts failed. Check your connection. & goto :fail )
   !PY! -m piper --help >NUL 2>&1 && set "PIPER_CMD=!PY! -m piper"
 )
-
 if not defined PIPER_CMD (
   echo [X] Piper still not runnable after install. See SETUP.md.
   goto :fail
@@ -59,71 +56,54 @@ echo [ok] piper ready: !PIPER_CMD!
 REM grunt reads this to know how to invoke piper
 set "GRUNT_PIPER_CMD=!PIPER_CMD!"
 
-REM --- 2. Voice model (LJ Speech - public domain, verifiable URL) -----------
-REM  Female base voice. For the MALE Norman voice: download norman.onnx +
-REM  norman.onnx.json from https://brycebeattie.com/files/tts into this folder
-REM  and set MODEL_ID=piper-en_US-norman, MODEL=norman.onnx below.
-set "MODEL=en_US-ljspeech-high.onnx"
-set "MODEL_ID=piper-en_US-ljspeech"
-set "MODEL_BASE=https://huggingface.co/rhasspy/piper-voices/resolve/v1.0.0/en/en_US/ljspeech/high"
-if exist "%MODEL%" (
-  echo [ok] Voice model already present: %MODEL%
-) else (
-  echo [2/6] Downloading voice model - LJ Speech, public domain...
-  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%?download=true' -OutFile '%MODEL%' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
-  if errorlevel 1 ( echo [X] Could not download the voice model. & goto :fail )
-  powershell -NoProfile -Command "try { Invoke-WebRequest -Uri '%MODEL_BASE%/%MODEL%.json?download=true' -OutFile '%MODEL%.json' -UseBasicParsing } catch { Write-Host $_.Exception.Message; exit 1 }"
-  if errorlevel 1 ( echo [X] Could not download the model config json. & goto :fail )
+REM --- 2. Voices the four archetypes use (public domain, auto-downloaded) ---
+REM   norman -> jersey + russian   john -> cop   bryce -> delco
+echo(
+echo [2/3] Downloading archetype voices (public domain)...
+for %%V in (piper-en_US-norman piper-en_US-john piper-en_US-bryce) do (
+  echo   - %%V
+  "%GRUNT%" fetch-voice --model %%V
+  if errorlevel 1 ( echo [X] could not download %%V. Check your connection. & goto :fail )
 )
-if not exist "%MODEL%"      ( echo [X] model file missing after download. & goto :fail )
-if not exist "%MODEL%.json" ( echo [X] model .json missing after download. & goto :fail )
-echo [ok] voice model ready: %MODEL%
+echo [ok] archetype voices ready
 
-REM --- 3/4. verify the chain ------------------------------------------------
+REM --- 3. Bake the four ready-to-use NPC bark sets -------------------------
 echo(
-echo [3/6] Using piper: %GRUNT_PIPER_CMD%
-echo [4/6] Verifying with: grunt doctor --live
-echo(
-"%GRUNT%" doctor --live
-echo(
-
-REM --- 5. first bank --------------------------------------------------------
-echo [5/6] Generating your first talking bank into voices\my_guards ...
-"%GRUNT%" generate --units examples\barks.csv --voice voices\my_guards --model %MODEL_ID%
-if errorlevel 1 ( echo [X] generate failed - see the messages above. & goto :fail )
-
-REM confirm the bank actually got units (catches a silent empty generate)
-if not exist "voices\my_guards\metadata\units.json" (
-  echo [X] generate ran but no units.json was written. The bank is empty.
-  goto :fail
-)
-echo [ok] bank generated: voices\my_guards
-
-REM --- 6. speak -------------------------------------------------------------
-echo(
-echo [6/6] Rendering a real spoken word...
-"%GRUNT%" synth --text "intruder" --character orc --voice voices\my_guards --out first_word.ogg
-if errorlevel 1 ( echo [X] synth failed. & goto :fail )
-if not exist "first_word.ogg" ( echo [X] no output file was written. & goto :fail )
+echo [3/3] Baking the four NPC bark sets...
+call :bake cop      cop_barks.csv      cop_vo
+if errorlevel 1 goto :fail
+call :bake jersey   jersey_barks.csv   jersey_vo
+if errorlevel 1 goto :fail
+call :bake russian  russian_barks.csv  russian_vo
+if errorlevel 1 goto :fail
+call :bake delco    delco_barks.csv    delco_vo
+if errorlevel 1 goto :fail
 
 echo(
 echo ============================================
-echo   SUCCESS - you have a real talking bank.
+echo   SUCCESS - four NPC voice sets are ready.
 echo ============================================
-echo Playing first_word.ogg - an orc saying intruder...
-start "" "first_word.ogg"
+echo   cop_vo\      FBI / cop      (clean, radio)
+echo   jersey_vo\   Italian NJ mob (raspy, mid)
+echo   russian_vo\  Russian mafia  (deep, cold)
+echo   delco_vo\    Delco PA lead  (young, scrappy)
 echo(
-echo From here:
-echo   GUI: run grunt_gui.exe, open "advanced", point the bank at
-echo        voices\my_guards, then pick a character from the dropdown.
-echo   CLI: grunt synth --text "your line" --character orc --voice voices\my_guards --out line.ogg
-echo   Edit examples\barks.csv to add your own lines, then re-run this.
+echo Each folder holds one .ogg per line, named by its trigger key - drop a
+echo folder into your Godot project's res:// and play clips by name with gool.
 echo(
-echo NOTE: the bundled demo bank heavy_brother is grunt-only by design, so
-echo       it sounds like grunts. voices\my_guards is your REAL words bank -
-echo       point the GUI at it to hear speech.
+echo To make your OWN lines: open grunt_gui.exe, pick a character, type a line,
+echo tune it with the sliders, and use the Bark list panel to build + bake a set.
+echo Edit any examples\*_barks.csv to change what these characters say.
 echo(
 goto :done
+
+REM --- helper: bake one archetype -------------------------------------------
+:bake
+REM %1 = label  %2 = csv name (in examples\)  %3 = out folder
+echo   - %~1 -^> %~3\
+"%GRUNT%" batch --csv "examples\%~2" --out-dir "%~3"
+if errorlevel 1 ( echo [X] baking %~1 failed - see messages above. & exit /b 1 )
+exit /b 0
 
 :fail
 echo(
@@ -133,7 +113,6 @@ echo ============================================
 echo The step marked [X] above is what failed. Fixes:
 echo   - check your internet connection and re-run setup.bat
 echo   - or see SETUP.md for the manual steps
-echo   - you can always hear the grunt-only demo: grunt.exe quickstart
 echo(
 echo This window will stay open. Press any key to close it.
 pause >nul

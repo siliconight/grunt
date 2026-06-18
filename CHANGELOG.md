@@ -4,6 +4,23 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.15] - 2026-06-18
+
+### Changed
+- **setup.bat now sets up the four NPC archetypes, not the old orc demo.** After
+  installing Piper it downloads the three public-domain archetype voices
+  (Norman, John, Bryce) via grunt's own `fetch-voice`, then bakes all four bark
+  sets — `cop_vo/`, `jersey_vo/`, `russian_vo/`, `delco_vo/` — ready to drop into
+  a game. Fixes the "Unable to find voice: norman" wall a user hit when the old
+  setup only fetched the female LJ voice but the gangster/jersey/russian
+  characters need Norman. Updated the package's READ ME FIRST accordingly.
+
+### Fixed
+- **GUI bark-bake now surfaces a missing voice with the Download button** instead
+  of letting Piper throw a traceback for every line. If a bake hits an
+  un-downloaded voice it stops, names it, and shows the one-click "Download"
+  button (same path as single-line Play), then you Bake all again.
+
 ## [0.22.14] - 2026-06-18
 
 ### Added

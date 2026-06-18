@@ -552,14 +552,24 @@ int main(int argc, char** argv) {
                         std::error_code ec;
                         std::filesystem::create_directories(bark_out_dir, ec);
                         const char* ext = (fmt == AudioFormat::Ogg) ? "ogg" : "wav";
-                        int ok = 0, fail = 0; std::string werr;
+                        int ok = 0, fail = 0; std::string werr; std::string missing;
                         for (auto& b : barks) {
                             if (!b.key[0] || !b.text[0]) { ++fail; continue; }
                             SynthResult r = synth_text(b.text);
-                            if (!r.ok) { ++fail; continue; }
+                            if (!r.ok) {
+                                ++fail;
+                                if (!r.missing_model.empty()) { missing = r.missing_model; break; }
+                                continue;
+                            }
                             std::string path = std::string(bark_out_dir) + "/" + b.key + "." + ext;
                             if (write_audio(path, r.audio, fmt, 0.4f, werr)) ++ok; else ++fail;
                         }
+                        if (!missing.empty()) {
+                            // surface the missing voice so the Download button appears,
+                            // instead of letting Piper throw for every remaining bark
+                            needs_voice = missing;
+                            bake_status = "Need voice '" + missing + "' — download it (button below), then Bake all again.";
+                        } else
                         bake_status = "Baked " + std::to_string(ok) + " clip(s) -> "
                                     + bark_out_dir + (fail ? ("  (" + std::to_string(fail) + " skipped)") : "");
                     }
