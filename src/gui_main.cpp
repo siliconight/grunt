@@ -280,7 +280,11 @@ int main(int argc, char** argv) {
     SynthResult last; // cached last render for export
 
     auto do_synth = [&]() -> bool {
-        if (!engine.voice_loaded()) { status = "No voice bank loaded — click Load."; return false; }
+        // Line mode speaks the whole line via Piper — no bank needed. Only the
+        // bank-based modes (Effort / Onomatopoeia) require a loaded voice bank.
+        if (input_mode != 0 && !engine.voice_loaded()) {
+            status = "No voice bank loaded — click Load."; return false;
+        }
         uint64_t s = lock_seed ? (uint64_t)seed
                                : (uint64_t)glfwGetTime() * 1000003ULL + 1;
 
