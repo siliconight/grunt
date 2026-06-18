@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.5] - 2026-06-17
+
+### Changed
+- GUI **Line mode no longer requires a voice bank to be loaded**. Spoken lines
+  go straight through Piper (`synth_speech`), so you can open the GUI, pick a
+  character (e.g. Gangster), type a line, and Play — no bank to load first. The
+  bank requirement now applies only to Effort / Onomatopoeia modes, which use
+  bank units.
+
+### Fixed
+- `grunt --version` now reports the real version (was frozen at `0.10.0`).
+
 ## [0.22.4] - 2026-06-17
 
 ### Fixed
