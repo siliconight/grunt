@@ -51,6 +51,15 @@ struct GeneratedClip {
 // doctor, and GUI.
 std::string detect_piper_cmd();
 
+// Best-effort: get a working Piper onto this machine, no Python expertise needed.
+// If Piper already works, returns its command immediately. Otherwise: finds an
+// existing Python (py/python) or, on Windows with none, downloads + silently
+// runs the official python.org per-user installer, then `pip install --user
+// piper-tts`. Returns the working piper command, or "" on failure. `progress`
+// (optional) receives human-readable status lines. WINDOWS-ONLY for the
+// auto-download-Python step; on other OSes it only uses an existing Python.
+std::string install_piper(const std::function<void(const std::string&)>& progress = {});
+
 // Download a voice model (the .onnx and its .onnx.json) for `model` to the
 // path resolve_dest(model.model_file) returns. Shared by the CLI fetch-voice
 // command and the GUI's one-click download button so there's one code path.

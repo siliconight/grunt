@@ -463,7 +463,7 @@ int cmd_generate(int argc, char** argv) {
 }
 
 // grunt version — bump with each tagged release.
-static const char* kGruntVersion = "0.22.16";
+static const char* kGruntVersion = "0.22.17";
 
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.
@@ -641,6 +641,22 @@ int cmd_coverage(int argc, char** argv) {
 }
 
 // fetch-voice — download a registered voice model's files to where grunt looks
+int cmd_setup_piper(int argc, char** argv) {
+    (void)argc; (void)argv;
+    std::cout << "Setting up the speech engine (Piper). On a machine with no\n"
+                 "Python this downloads + installs it for you; can take a few minutes.\n\n";
+    std::string cmd = voc::install_piper(
+        [](const std::string& line){ std::cout << "  " << line << "\n"; });
+    if (cmd.empty()) {
+        std::cerr << "\n[X] Could not set up Piper automatically. See SETUP.md for manual steps.\n";
+        return 1;
+    }
+    std::cout << "\n[ok] Speech engine ready: " << cmd << "\n"
+                 "If grunt can't find it later, set in your environment:\n"
+                 "  GRUNT_PIPER_CMD=" << cmd << "\n";
+    return 0;
+}
+
 // for them, killing the manual "find the .onnx on a website" step. Only models
 // with a verified direct download_url are fetched; others print manual steps.
 int cmd_fetch_voice(int argc, char** argv) {
@@ -824,6 +840,7 @@ int main(int argc, char** argv) {
     if (cmd == "quickstart") return cmd_quickstart(argc, argv);
     if (cmd == "doctor")     return cmd_doctor(argc, argv);
     if (cmd == "fetch-voice") return cmd_fetch_voice(argc, argv);
+    if (cmd == "setup-piper") return cmd_setup_piper(argc, argv);
     if (cmd == "synth")    return cmd_synth(argc, argv);
     if (cmd == "batch")    return cmd_batch(argc, argv);
     if (cmd == "generate") return cmd_generate(argc, argv);

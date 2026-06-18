@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.17] - 2026-06-18
+
+### Added
+- **`grunt setup-piper` — gets the speech engine onto a machine with no Python
+  knowledge.** New `install_piper()` helper + `setup-piper` subcommand: if Piper
+  already works it's a no-op; if Python exists it `pip install --user
+  piper-tts`; and on Windows with NO Python it downloads the official python.org
+  per-user installer and runs it silently (`/quiet InstallAllUsers=0
+  PrependPath=1 Include_pip=1`, no admin prompt), then installs Piper. Falls
+  back to `--break-system-packages` on PEP 668 externally-managed environments.
+  This is Layer 1 of making grunt usable by non-technical users — the engine
+  wall. (The GUI "set up voices" button that calls this is the next step.)
+
 ## [0.22.16] - 2026-06-18
 
 ### Added

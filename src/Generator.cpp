@@ -87,6 +87,92 @@ std::string detect_piper_cmd() {
     return "";
 }
 
+// Resolve a usable Python command ("py", "python", "python3"), or "" if none.
+static std::string detect_python_cmd() {
+#if defined(_WIN32)
+    const char* cands[] = { "py -3", "py", "python" };
+    for (const char* c : cands) {
+        std::string t = std::string(c) + " --version >NUL 2>&1";
+        if (std::system(t.c_str()) == 0) return c;
+    }
+#else
+    const char* cands[] = { "python3", "python" };
+    for (const char* c : cands) {
+        std::string t = std::string(c) + " --version >/dev/null 2>&1";
+        if (std::system(t.c_str()) == 0) return c;
+    }
+#endif
+    return "";
+}
+
+std::string install_piper(const std::function<void(const std::string&)>& progress) {
+    auto say = [&](const std::string& s){ if (progress) progress(s); };
+
+    // 1. Already have a working Piper? Done.
+    std::string have = detect_piper_cmd();
+    if (!have.empty()) { say("Piper already available: " + have); return have; }
+
+    // 2. Find Python.
+    std::string py = detect_python_cmd();
+
+#if defined(_WIN32)
+    // 3. No Python on Windows -> download + silently install the official
+    //    per-user build (no admin, adds itself to PATH, includes pip).
+    if (py.empty()) {
+        const char* ver = "3.12.8";  // stable; piper-tts has wheels for 3.12
+        std::string url = "https://www.python.org/ftp/python/" + std::string(ver)
+                        + "/python-" + ver + "-amd64.exe";
+        const char* tmp = std::getenv("TEMP");
+        std::string exe = std::string(tmp ? tmp : ".") + "\\python-grunt-setup.exe";
+        say("Python not found. Downloading the official Python installer...");
+        std::string dl = "powershell -NoProfile -Command \"try { Invoke-WebRequest -Uri '"
+                       + url + "' -OutFile '" + exe + "' -UseBasicParsing } catch { exit 1 }\"";
+        if (std::system(dl.c_str()) != 0) { say("Could not download Python. Check your connection."); return ""; }
+        say("Installing Python (per-user, quiet -- this can take a minute)...");
+        // per-user (no UAC), PrependPath so python/pip resolve, pip included.
+        std::string inst = "\"" + exe + "\" /quiet InstallAllUsers=0 PrependPath=1 Include_pip=1 Include_test=0";
+        std::system(inst.c_str());  // PATH won't refresh in THIS process
+        // Probe the per-user install location directly (PATH isn't updated here).
+        const char* local = std::getenv("LOCALAPPDATA");
+        if (local) {
+            std::string guess = std::string(local) + "\\Programs\\Python\\Python312\\python.exe";
+            std::string t = "\"" + guess + "\" --version >NUL 2>&1";
+            if (std::system(t.c_str()) == 0) py = "\"" + guess + "\"";
+        }
+        if (py.empty()) py = detect_python_cmd();
+        if (py.empty()) {
+            say("Python installed, but not detected yet. Close grunt and reopen, then try again.");
+            return "";
+        }
+    }
+#endif
+
+    if (py.empty()) {
+        say("No Python found. Install Python 3.9+ from python.org, then retry.");
+        return "";
+    }
+
+    // 4. pip install piper-tts (per-user to avoid permission issues).
+    say("Installing the Piper speech engine (pip install piper-tts)...");
+    std::string pip = py + " -m pip install --user --upgrade piper-tts";
+    if (std::system(pip.c_str()) != 0) {
+        say("Retrying install with --break-system-packages...");  // PEP 668 envs
+        std::string pip2 = py + " -m pip install --user --break-system-packages --upgrade piper-tts";
+        if (std::system(pip2.c_str()) != 0) { say("pip install piper-tts failed."); return ""; }
+    }
+
+    // 5. Confirm and report the working command.
+    std::string cmd = py + " -m piper";
+#if defined(_WIN32)
+    std::string check = cmd + " --help >NUL 2>&1";
+#else
+    std::string check = cmd + " --help >/dev/null 2>&1";
+#endif
+    if (std::system(check.c_str()) != 0) { say("Piper installed but not runnable yet."); return ""; }
+    say("Piper ready: " + cmd);
+    return cmd;
+}
+
 // One download path, shared by the CLI and the GUI. Pulls model.download_url to
 // dest_onnx and model.download_url_json to dest_onnx + ".json".
 FetchOutcome fetch_voice_model(const VoiceModel& model,
