@@ -220,6 +220,35 @@ int main(int argc, char** argv) {
     }
     int character_idx = 0;
 
+    // Live voice-tuning sliders. These START from the selected character's preset
+    // but are then freely adjustable by ear; the values here (not the preset) are
+    // what do_synth feeds the engine. Session-only — characters.json is never
+    // written. Switching characters reloads these from that character's preset.
+    struct Tuning {
+        float pitch_st  = 0.0f;   // extra_pitch_st
+        float gain_db   = 0.0f;   // extra_gain_db
+        float formant   = 0.0f;   // formant_shift (-1..+1)
+        float rasp      = 0.0f;   // 0..1
+        bool  sub_layer = false;
+        float speed     = 1.0f;   // synth_speech speed (Line/Onomatopoeia)
+    } tune;
+    bool tuning_dirty = false;     // true once the user has nudged a slider
+    int  tuned_for_idx = -1;       // which character_idx the sliders were loaded from
+    auto load_tuning_from_character = [&](const std::string& cid) {
+        tune = Tuning{};                       // neutral defaults (the "(none)" case)
+        if (!cid.empty()) {
+            if (const CharacterPreset* cp = char_lib.find(cid)) {
+                tune.pitch_st  = (float)cp->pitch_offset_st;
+                tune.gain_db   = (float)cp->gain_db;
+                tune.formant   = (float)cp->formant_shift;
+                tune.rasp      = cp->rasp ? 0.6f : 0.0f;
+                tune.sub_layer = cp->sub_layer;
+            }
+        }
+        tune.speed = 1.0f;
+        tuning_dirty = false;
+    };
+
     // Voice model registry — so the GUI can offer a one-click download when a
     // character's voice isn't on disk yet (same data the CLI's fetch-voice uses).
     VoiceModelRegistry voice_reg;
@@ -300,7 +329,9 @@ int main(int argc, char** argv) {
         uint64_t s = lock_seed ? (uint64_t)seed
                                : (uint64_t)glfwGetTime() * 1000003ULL + 1;
 
-        // Apply the selected character preset (if any) as the CLI does.
+        // Character sets fx preset, emotion bias, and base voice. The DSP knobs
+        // (pitch/gain/formant/rasp/sub) come from the LIVE tuning sliders, which
+        // were seeded from the character's preset but may have been nudged.
         Engine::Options opts;
         Emotion emo = (Emotion)emotion_idx;
         std::string fx = fxs[fx_idx];
@@ -310,14 +341,14 @@ int main(int argc, char** argv) {
             if (const CharacterPreset* cp = char_lib.find(cid)) {
                 fx  = cp->fx_preset;
                 emo = emotion_from_string(cp->emotion_bias);
-                opts.extra_pitch_st = cp->pitch_offset_st;
-                opts.extra_gain_db  = cp->gain_db;
-                opts.formant_shift  = cp->formant_shift;
-                opts.sub_layer      = cp->sub_layer;
-                opts.rasp           = cp->rasp ? 0.6 : 0.0;
                 if (!cp->base_voice.empty()) speech_model = cp->base_voice;
             }
         }
+        opts.extra_pitch_st = tune.pitch_st;
+        opts.extra_gain_db  = tune.gain_db;
+        opts.formant_shift  = tune.formant;
+        opts.sub_layer      = tune.sub_layer;
+        opts.rasp           = tune.rasp;
         // Render according to the selected input mode. Character recipe (above)
         // applies to all three; emotion may be overridden per-mode as the CLI does.
         if (input_mode == 1) {                       // Effort
@@ -340,14 +371,16 @@ int main(int argc, char** argv) {
                     if (++run > max_run) max_run = run;
                 } else run = 1;
             }
-            // 1 repeat = 1.0x; each extra repeated letter slows ~8%, floor 0.6x
+            // 1 repeat = 1.0x; each extra repeated letter slows ~8%, floor 0.6x.
+            // Compose with the live speed slider so both knobs apply.
             double speed = 1.0 - 0.08 * (max_run - 1);
             if (speed < 0.6) speed = 0.6;
+            speed *= tune.speed;
             last = engine.synth_speech(onomatopoeia, speech_model, fx, opts, speed);
         } else {                                     // Line (spoken text)
             // Speak the whole line via Piper, then style it — says any words,
             // not just what's in a bank. No bank needed for speech.
-            last = engine.synth_speech(text, speech_model, fx, opts, 1.0);
+            last = engine.synth_speech(text, speech_model, fx, opts, tune.speed);
         }
         if (!last.ok) {
             needs_voice = last.missing_model;   // empty unless it's a missing-voice failure
@@ -383,6 +416,34 @@ int main(int argc, char** argv) {
         ImGui::TextUnformatted("Character");
         ImGui::Combo("##character", &character_idx,
                      char_label_ptrs.data(), (int)char_label_ptrs.size());
+
+        // When the character changes (or on first frame), reseed the tuning
+        // sliders from that character's preset so each one starts from its own
+        // real voice and tweaks don't bleed across characters.
+        if (character_idx != tuned_for_idx) {
+            load_tuning_from_character(char_ids[character_idx]);
+            tuned_for_idx = character_idx;
+        }
+
+        // --- Voice tuning: live knobs, seeded from the character, tweak by ear.
+        // Session-only (characters.json is never written). Tune until a line
+        // sounds right, then every line you bake uses these same values. ---
+        if (ImGui::CollapsingHeader("Voice tuning")) {
+            bool ch = false;
+            ch |= ImGui::SliderFloat("pitch (st)", &tune.pitch_st, -12.0f, 6.0f, "%.1f");
+            ch |= ImGui::SliderFloat("rasp",       &tune.rasp,      0.0f, 1.0f, "%.2f");
+            ch |= ImGui::SliderFloat("formant",    &tune.formant,  -1.0f, 1.0f, "%.2f");
+            ch |= ImGui::SliderFloat("speed",      &tune.speed,     0.6f, 1.4f, "%.2f");
+            ch |= ImGui::SliderFloat("gain (dB)",  &tune.gain_db,  -6.0f, 6.0f, "%.1f");
+            ch |= ImGui::Checkbox("sub-octave",    &tune.sub_layer);
+            if (ch) tuning_dirty = true;
+            ImGui::SameLine();
+            if (ImGui::Button("Reset to character")) {
+                load_tuning_from_character(char_ids[character_idx]);
+            }
+            if (tuning_dirty)
+                ImGui::TextDisabled("tweaked from preset — values apply to every line you Play/Export");
+        }
 
         // --- What to say ---
         ImGui::Separator();
