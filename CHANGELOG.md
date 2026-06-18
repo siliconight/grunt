@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.20] - 2026-06-18
+
+### Fixed
+- **CI no longer fails when the voice host rate-limits.** The CI smoke-test
+  downloads the public-domain LJ voice from HuggingFace; HuggingFace occasionally
+  returns HTTP 429 (too many requests), which was red-X'ing builds that had
+  already compiled and passed tests. The fetch now retries 3x with backoff, and
+  if the host is still unreachable the voice-dependent smoke-tests skip with a
+  warning instead of failing the whole build. The checks that actually verify
+  grunt (compile, unit tests, libvorbis detection) always run. No code change —
+  CI resilience only. (LJ stays a shipped public-domain voice; this just stops an
+  external host's uptime from gating grunt's builds.)
+
 ## [0.22.19] - 2026-06-18
 
 ### Added
