@@ -29,10 +29,21 @@ jobs:
       - name: Unit tests
         run: ctest --test-dir build --output-on-failure
 
+      - name: Install piper (speech engine) for the speech path
+        run: pip install piper-tts
+
+      - name: Fetch a voice model (for the speech path)
+        run: ./build/grunt fetch-voice --model piper-en_US-ljspeech
+
       - name: Smoke bake + codec check
         run: |
+          # woman_raspy's base voice is piper-en_US-ljspeech (fetched above), so
+          # this exercises the speech + style + OGG/Vorbis path with a voice we
+          # have — no norman needed. Matches ci.yml's smoke bake.
           ./build/grunt batch --csv scripts/sample_lines.csv \
-            --voice voices/heavy_brother --out-dir build/vo --seed 1234
+            --character woman_raspy --out-dir build/vo
+          test -f build/vo/mission01_open_gate.ogg \
+            || (echo "expected .ogg output not produced" && exit 1)
           codec=$(ffprobe -loglevel error -show_entries stream=codec_name \
             -of default=nw=1:nk=1 build/vo/mission01_open_gate.ogg)
           test "$codec" = "vorbis" || (echo "expected vorbis, got $codec" && exit 1)
