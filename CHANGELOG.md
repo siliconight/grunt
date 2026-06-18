@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.7] - 2026-06-18
+
+### Fixed
+- **The release workflow (`release.yml`) was the real source of the red X**, not
+  CI. It's a separate workflow that triggers on tags, and its smoke-bake step
+  still ran the obsolete `batch ... --voice voices/heavy_brother --seed 1234`
+  command (legacy bank path) against the new `key,text` `sample_lines.csv`,
+  producing zero clips and failing the asserted `.ogg`. Fixed it to match
+  `ci.yml`: install piper, fetch `piper-en_US-ljspeech`, bake with the
+  `woman_raspy` character (ljspeech base), assert the OGG + Vorbis codec. The
+  `grunt CI` workflow on `main` was already green; this makes the tag-triggered
+  release green too.
+
 ## [0.22.6] - 2026-06-18
 
 ### Fixed
