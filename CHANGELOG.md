@@ -4,6 +4,23 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.14] - 2026-06-18
+
+### Added
+- **Bryce voice (`piper-en_US-bryce`)** added to the registry — a 6th
+  public-domain, auto-downloadable voice (the creator's own voice, released
+  public domain; from brycebeattie.com). A lighter, cleaner male timbre.
+- The **Delco protagonist** archetype now uses the Bryce voice instead of John,
+  so the four archetypes span THREE distinct base voices (cop=John,
+  jersey/russian=Norman, delco=Bryce) — the protagonist now sounds like a
+  different person from the cop, not the same voice re-EQ'd.
+
+### Notes
+- ManyVoice (mv2) — a single public-domain model with 16 distinct speakers —
+  was evaluated as a future "multi-speaker" feature. Using it needs grunt to pass
+  a `--speaker` index through to Piper (an engine change), so it's deferred to a
+  deliberate next build rather than bundled here.
+
 ## [0.22.13] - 2026-06-18
 
 ### Added

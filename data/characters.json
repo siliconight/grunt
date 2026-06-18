@@ -133,7 +133,7 @@
     {
       "id": "delco",
       "display_name": "Delco PA Protagonist (young male, attitude)",
-      "base_voice": "piper-en_US-john",
+      "base_voice": "piper-en_US-bryce",
       "pitch_offset_st": -2.0,
       "fx_preset": "clean_ps1",
       "emotion_bias": "neutral",

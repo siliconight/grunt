@@ -78,6 +78,21 @@
       "dataset_license": "public domain",
       "voice_traits": "US English, male, single speaker; FINETUNED from 'Kristin' (not from scratch)",
       "notes": "Clean chain BUT note the extra link: FINETUNED from the Kristin voice (itself clean public-domain LibriVox), on ~12.5h public-domain LibriVox. Base + data both public domain, so chain is clean, but it's a fine-tune lineage rather than pure from-scratch — documented for diligence. Same creator (Bryce Beattie), personal-site attestation. Good-faith read, NOT legal advice; gate enforces."
+    },
+    {
+      "id": "piper-en_US-bryce",
+      "generator": "piper",
+      "model_file": "bryce.onnx",
+      "license": "public-domain (model + dataset)",
+      "commercial_use": true,
+      "redistributable": true,
+      "source_url": "https://brycebeattie.com/files/tts/",
+      "download_url": "https://sfo3.digitaloceanspaces.com/bkmdls/bryce.onnx",
+      "download_url_json": "https://sfo3.digitaloceanspaces.com/bkmdls/bryce.onnx.json",
+      "dataset": "Creator's own voice (~750 samples), compiled by Bryce Beattie",
+      "dataset_license": "public domain",
+      "voice_traits": "US English, male, single speaker; lighter/natural conversational timbre; FINETUNED (1000 epochs) from an unreleased base voice",
+      "notes": "Cleanest-possible speaker provenance in one sense — it's the creator's OWN voice, so the speaker is the rights-holder, released public domain. Diligence note: it's a fine-tune from an UNRELEASED base voice (per the source page), so the base lineage isn't independently inspectable the way from-scratch norman is. Same creator (Bryce Beattie), personal-site attestation. Good-faith read, NOT legal advice; gate enforces. Gives the archetype set a 5th distinct male timbre (e.g. a younger/cleaner protagonist voice) without multi-speaker support."
     }
   ],
   "_excluded_models": [
