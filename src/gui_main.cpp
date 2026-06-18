@@ -35,6 +35,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>
+#include <cctype>
 #include <cstdio>
 #include <mutex>
 #include <string>
@@ -183,7 +184,7 @@ int main(int argc, char** argv) {
 
     Engine engine;
     Player player;
-    std::string status = "Pick a character, Load, then Play.";
+    std::string status = "Pick a character, type a line, and press Play.";
     char voice_dir[256];
     std::snprintf(voice_dir, sizeof(voice_dir), "%s",
                   voc::resource_path("voices/heavy_brother").c_str());
@@ -218,6 +219,14 @@ int main(int argc, char** argv) {
         for (auto& s : char_labels) char_label_ptrs.push_back(s.c_str());
     }
     int character_idx = 0;
+
+    // Voice model registry — so the GUI can offer a one-click download when a
+    // character's voice isn't on disk yet (same data the CLI's fetch-voice uses).
+    VoiceModelRegistry voice_reg;
+    {
+        std::string rerr;
+        voice_reg.load(voc::resource_path("data/voice_models.json"), rerr);
+    }
 
     // Effort vocalizations — loaded from data/efforts.json (same set the CLI's
     // --effort exposes). Populates the Effort-mode dropdown.
@@ -278,12 +287,15 @@ int main(int argc, char** argv) {
 
     bool player_ready = false;
     SynthResult last; // cached last render for export
+    std::string needs_voice;   // non-empty when last synth failed only for a missing voice
+    std::string fetch_status;  // progress text for the download button
 
     auto do_synth = [&]() -> bool {
-        // Line mode speaks the whole line via Piper — no bank needed. Only the
-        // bank-based modes (Effort / Onomatopoeia) require a loaded voice bank.
-        if (input_mode != 0 && !engine.voice_loaded()) {
-            status = "No voice bank loaded — click Load."; return false;
+        // Effort mode is the only one that still needs a loaded voice bank (it
+        // selects phoneme units from the bank). Line and Onomatopoeia both speak
+        // through Piper with no bank.
+        if (input_mode == 1 && !engine.voice_loaded()) {
+            status = "Effort mode needs a voice bank — Load or Generate one below."; return false;
         }
         uint64_t s = lock_seed ? (uint64_t)seed
                                : (uint64_t)glfwGetTime() * 1000003ULL + 1;
@@ -317,17 +329,35 @@ int main(int argc, char** argv) {
             seq.emotion = emo;
             last = engine.synth_vocalization(seq, ef->intensity, fx, s, opts);
         } else if (input_mode == 2) {                // Onomatopoeia
-            PhonemeMapper mapper;                    // letter-level G2P; no dict needed
-            double intensity = 0.7;
-            PhonemeSeq seq = onomatopoeia_to_phonemes(onomatopoeia, mapper, intensity);
-            if (!cid.empty()) seq.emotion = emo;     // let the character bias the emotion
-            last = engine.synth_vocalization(seq, intensity, fx, s, opts);
+            // Post-pivot: speak the sound straight through Piper (no bank), then
+            // style it with the character FX — same path as Line. Repeated
+            // letters ("aaaargh") slow the delivery so it drawls longer than the
+            // short form, preserving the old intensity-from-repetition feel.
+            int max_run = 1, run = 1;
+            for (size_t i = 1; onomatopoeia[i] && i < sizeof(onomatopoeia); ++i) {
+                if (std::tolower((unsigned char)onomatopoeia[i]) ==
+                    std::tolower((unsigned char)onomatopoeia[i-1])) {
+                    if (++run > max_run) max_run = run;
+                } else run = 1;
+            }
+            // 1 repeat = 1.0x; each extra repeated letter slows ~8%, floor 0.6x
+            double speed = 1.0 - 0.08 * (max_run - 1);
+            if (speed < 0.6) speed = 0.6;
+            last = engine.synth_speech(onomatopoeia, speech_model, fx, opts, speed);
         } else {                                     // Line (spoken text)
             // Speak the whole line via Piper, then style it — says any words,
             // not just what's in a bank. No bank needed for speech.
             last = engine.synth_speech(text, speech_model, fx, opts, 1.0);
         }
-        if (!last.ok) { status = "Synth failed: " + last.error; return false; }
+        if (!last.ok) {
+            needs_voice = last.missing_model;   // empty unless it's a missing-voice failure
+            if (!needs_voice.empty())
+                status = "Voice '" + needs_voice + "' isn't downloaded yet.";
+            else
+                status = "Synth failed: " + last.error;
+            return false;
+        }
+        needs_voice.clear();
         status = "Rendered " + std::to_string(last.units) + " units, peak "
                + std::to_string(last.peak_dbfs) + " dBFS";
         return true;
@@ -345,8 +375,48 @@ int main(int argc, char** argv) {
                      ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove |
                      ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoTitleBar);
 
-        // --- Voice bank: pick which bank to speak from ---
+        // === PRIMARY FLOW: pick a character, type a line, hear it. ===
+        // Line mode speaks any text through Piper with no bank needed, so it
+        // leads. Bank selection (below) only matters for Effort/Onomatopoeia.
+
+        // --- Character: the first real choice ---
+        ImGui::TextUnformatted("Character");
+        ImGui::Combo("##character", &character_idx,
+                     char_label_ptrs.data(), (int)char_label_ptrs.size());
+
+        // --- What to say ---
+        ImGui::Separator();
+        ImGui::Combo("input", &input_mode, input_modes, IM_ARRAYSIZE(input_modes));
+        if (input_mode == 0) {                       // Line — spoken text
+            ImGui::TextUnformatted("Line");
+            ImGui::InputText("##text", text, sizeof(text));
+        } else if (input_mode == 1) {                // Effort — pick from efforts.json
+            ImGui::TextUnformatted("Effort");
+            ImGui::Combo("##effort", &effort_idx, effort_label_ptrs.data(),
+                         (int)effort_label_ptrs.size());
+        } else {                                     // Onomatopoeia — free text
+            ImGui::TextUnformatted("Onomatopoeia");
+            ImGui::InputText("##onomat", onomatopoeia, sizeof(onomatopoeia));
+            ImGui::TextDisabled("type a sound; repeat letters for intensity (argh -> aaargh)");
+        }
+
+        ImGui::Checkbox("lock seed", &lock_seed);
+        if (lock_seed) { ImGui::SameLine(); ImGui::InputInt("##seed", &seed); }
+
+        // --- Play / Stop: immediate payoff, right under the input ---
+        if (ImGui::Button("Play") && do_synth()) {
+            player.play(last.audio.samples);
+        }
+        ImGui::SameLine();
+        if (ImGui::Button("Stop")) player.stop();
+
+        // === SECONDARY: voice bank (only needed for Effort/Onomatopoeia) ===
+        ImGui::Separator();
         ImGui::TextUnformatted("Voice bank");
+        if (input_mode != 1) {
+            ImGui::TextDisabled("(%s mode speaks through Piper — no bank needed)",
+                                input_mode == 0 ? "Line" : "Onomatopoeia");
+        }
         bool bank_changed = false;
         if (!banks.empty()) {
             bank_changed = ImGui::Combo("##bank", &bank_idx,
@@ -372,11 +442,6 @@ int main(int argc, char** argv) {
                 status = "Load failed: " + err;
             }
         }
-
-        // --- Character ---
-        ImGui::TextUnformatted("Character");
-        ImGui::Combo("##character", &character_idx,
-                     char_label_ptrs.data(), (int)char_label_ptrs.size());
 
         // --- Generate voices: make a word-capable bank with Piper, in-app ---
         if (ImGui::CollapsingHeader("Generate voices (make a talking bank)")) {
@@ -441,31 +506,6 @@ int main(int argc, char** argv) {
         }
 
         ImGui::Separator();
-        ImGui::Combo("input", &input_mode, input_modes, IM_ARRAYSIZE(input_modes));
-        if (input_mode == 0) {                       // Line — spoken text
-            ImGui::TextUnformatted("Line");
-            ImGui::InputText("##text", text, sizeof(text));
-        } else if (input_mode == 1) {                // Effort — pick from efforts.json
-            ImGui::TextUnformatted("Effort");
-            ImGui::Combo("##effort", &effort_idx, effort_label_ptrs.data(),
-                         (int)effort_label_ptrs.size());
-        } else {                                     // Onomatopoeia — free text
-            ImGui::TextUnformatted("Onomatopoeia");
-            ImGui::InputText("##onomat", onomatopoeia, sizeof(onomatopoeia));
-            ImGui::TextDisabled("type a sound; repeat letters for intensity (argh -> aaargh)");
-        }
-
-        ImGui::Checkbox("lock seed", &lock_seed);
-        if (lock_seed) { ImGui::SameLine(); ImGui::InputInt("##seed", &seed); }
-
-        ImGui::Separator();
-        if (ImGui::Button("Play") && do_synth()) {
-            player.play(last.audio.samples);
-        }
-        ImGui::SameLine();
-        if (ImGui::Button("Stop")) player.stop();
-
-        ImGui::Separator();
         ImGui::TextUnformatted("Export");
         ImGui::InputText("##export", export_path, sizeof(export_path));
         ImGui::Combo("format", &format_idx, formats, IM_ARRAYSIZE(formats));
@@ -493,6 +533,35 @@ int main(int argc, char** argv) {
 
         ImGui::Separator();
         ImGui::TextWrapped("%s", status.c_str());
+
+        // When the last synth failed only because the character's voice isn't on
+        // disk, offer a one-click download instead of a dead-end. Same fetch path
+        // as the CLI's fetch-voice. (Synchronous: the window pauses briefly while
+        // it downloads — acceptable for a one-time per-voice action.)
+        if (!needs_voice.empty()) {
+            const VoiceModel* vm = voice_reg.find(needs_voice);
+            if (vm && !vm->download_url.empty()) {
+                if (ImGui::Button(("Download " + needs_voice).c_str())) {
+                    std::string dest = voc::resource_path(vm->model_file);
+                    fetch_status.clear();
+                    auto oc = voc::fetch_voice_model(*vm, dest,
+                        [&](const std::string& line){ fetch_status = line; });
+                    if (oc.ok) {
+                        status = "Downloaded " + needs_voice + " — press Play again.";
+                        needs_voice.clear();
+                    } else {
+                        status = "Download failed: " + oc.err;
+                    }
+                }
+                if (!fetch_status.empty()) {
+                    ImGui::SameLine();
+                    ImGui::TextDisabled("%s", fetch_status.c_str());
+                }
+            } else if (vm) {
+                ImGui::TextWrapped("This voice is a manual download. Get it from: %s",
+                                   vm->source_url.c_str());
+            }
+        }
 
         ImGui::End();
 

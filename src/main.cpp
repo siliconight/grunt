@@ -85,22 +85,22 @@ float resolve_quality(const Args& a) {
 int cmd_synth(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
     bool has_input = a.has("text") || a.has("effort") || a.has("onomatopoeia");
-    // effort/onomatopoeia always read bank units. For --text, a bank is OPTIONAL:
-    // with --voice we stitch from that bank (old path); without, we speak the
-    // whole line via Piper and style it (new speech path).
+    // --effort reads bank units (--voice required). --text and --onomatopoeia
+    // speak through Piper and style the result (no bank); --text with --voice
+    // instead stitches from that bank (old concatenative path).
     bool text_uses_bank = a.has("text") && a.has("voice");
-    bool needs_bank = a.has("effort") || a.has("onomatopoeia") || text_uses_bank;
+    bool needs_bank = a.has("effort") || text_uses_bank;
     if (!has_input || !a.has("out") ||
-        ((a.has("effort") || a.has("onomatopoeia")) && !a.has("voice"))) {
+        (a.has("effort") && !a.has("voice"))) {
         std::cerr << "usage: grunt synth (--text \"...\" | --effort <id> | --onomatopoeia \"aaargh\")"
                      " --out <file>"
                      " [--character <name>] [--model <id>] [--speed 1.0]"
                      " [--emotion neutral|urgent|angry]"
                      " [--style clean_ps1] [--format ogg|wav] [--quality 0.4] [--seed N]\n"
-                     "  --text  speaks ANY words via Piper, then styles them (no bank needed).\n"
+                     "  --text/--onomatopoeia speak via Piper, then style the result (no bank).\n"
                      "          --model picks the voice (default piper-en_US-ljspeech or the\n"
                      "          character's base voice); --speed <1 slower, >1 faster.\n"
-                     "  --effort/--onomatopoeia render from a bank (--voice <dir> required).\n"
+                     "  --effort renders from a bank (--voice <dir> required).\n"
                      "  --character applies a preset from data/characters.json (pitch/formant/rasp/FX).\n"
                      "  default format: ogg (Vorbis). out extension is set to match the format.\n";
         return 2;
@@ -174,11 +174,23 @@ int cmd_synth(int argc, char** argv) {
         seq.emotion = emo;
         res = engine.synth_vocalization(seq, ef->intensity, fx, seed, opts);
     } else if (a.has("onomatopoeia")) {
-        PhonemeMapper mapper;  // letter-level G2P; no dict needed for onomatopoeia
-        double intensity = 0.7;
-        PhonemeSeq seq = onomatopoeia_to_phonemes(a.get("onomatopoeia"), mapper, intensity);
-        if (a.has("emotion")) seq.emotion = emo;
-        res = engine.synth_vocalization(seq, intensity, fx, seed, opts);
+        // Post-pivot: speak the sound through Piper (no bank), styled by the
+        // character FX — same path as --text. Repeated letters slow delivery so
+        // "aaaargh" drawls longer than "argh".
+        std::string ono = a.get("onomatopoeia");
+        int max_run = 1, run = 1;
+        for (size_t i = 1; i < ono.size(); ++i) {
+            if (std::tolower((unsigned char)ono[i]) == std::tolower((unsigned char)ono[i-1])) {
+                if (++run > max_run) max_run = run;
+            } else run = 1;
+        }
+        double speed = 1.0 - 0.08 * (max_run - 1);
+        if (speed < 0.6) speed = 0.6;
+        if (a.has("speed")) speed = std::stod(a.get("speed"));  // explicit override wins
+        std::string model_id = a.get("model",
+            (a.has("character") && !char_base_voice.empty()) ? char_base_voice
+                                                             : "piper-en_US-ljspeech");
+        res = engine.synth_speech(ono, model_id, fx, opts, speed, a.get("generator", ""));
     } else if (text_uses_bank) {
         // --text WITH a --voice bank: stitch from that bank (the concatenative
         // path — e.g. a grunt-only bank turning words into grunts).
@@ -451,7 +463,7 @@ int cmd_generate(int argc, char** argv) {
 }
 
 // grunt version — bump with each tagged release.
-static const char* kGruntVersion = "0.22.8";
+static const char* kGruntVersion = "0.22.9";
 
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.
@@ -651,45 +663,14 @@ int cmd_fetch_voice(int argc, char** argv) {
 
     // destination: next to the binary, where generate/doctor resolve model_file
     std::string dest = resource_path(m->model_file);
-    std::error_code ec;
-    if (std::filesystem::exists(dest, ec)) {
-        std::cout << "[ok] already present: " << dest << "\n";
-        return 0;
-    }
 
-    if (m->download_url.empty()) {
-        std::cout << "'" << id << "' has no machine-verifiable direct URL, so it's a manual\n"
-                     "download (to keep provenance honest). Get these from:\n  "
-                  << m->source_url << "\nand place next to grunt:\n  "
-                  << m->model_file << "\n  " << m->model_file << ".json\n";
+    auto outcome = voc::fetch_voice_model(*m, dest,
+        [](const std::string& line){ std::cout << "  " << line << "\n"; });
+    if (!outcome.ok) {
+        std::cerr << "[X] " << outcome.err << "\n";
         return 1;
     }
-
-    auto fetch = [](const std::string& url, const std::string& out) -> bool {
-        std::string cmd;
-#if defined(_WIN32)
-        cmd = "powershell -NoProfile -Command \"try { Invoke-WebRequest -Uri '"
-            + url + "' -OutFile '" + out + "' -UseBasicParsing } catch { exit 1 }\"";
-#else
-        cmd = "curl -fsSL '" + url + "' -o '" + out + "' || wget -q '" + url + "' -O '" + out + "'";
-#endif
-        return std::system(cmd.c_str()) == 0;
-    };
-
-    std::cout << "downloading " << id << " (" << m->license << ")...\n";
-    if (!fetch(m->download_url, dest)) {
-        std::cerr << "[X] download failed: " << m->download_url << "\n";
-        return 1;
-    }
-    if (!m->download_url_json.empty()) {
-        if (!fetch(m->download_url_json, dest + ".json")) {
-            std::cerr << "[X] model config (.json) download failed\n";
-            return 1;
-        }
-    }
-    if (!std::filesystem::exists(dest, ec)) {
-        std::cerr << "[X] file not present after download\n"; return 1;
-    }
+    if (outcome.already_present) return 0;
     std::cout << "[ok] fetched: " << dest << "\n"
               << "now: grunt generate --units examples/barks.csv --voice voices/my_guards --model "
               << id << "\n";

@@ -5,6 +5,7 @@
 // the ship gate refuses to bake anything not cleared. The generator binary is
 // a BUILD-TIME tool; only its rendered audio (which is yours, per the model's
 // CC0/permissive license) ends up in a shipped bank.
+#include <functional>
 #include "Types.h"
 #include <string>
 #include <vector>
@@ -49,6 +50,16 @@ struct GeneratedClip {
 // {piper, python -m piper, py/python3 -m piper}, else "". Shared by generator,
 // doctor, and GUI.
 std::string detect_piper_cmd();
+
+// Download a voice model (the .onnx and its .onnx.json) for `model` to the
+// path resolve_dest(model.model_file) returns. Shared by the CLI fetch-voice
+// command and the GUI's one-click download button so there's one code path.
+// Returns true on success (or if already present). On failure, sets `err`.
+// `progress` (optional) is called with human-readable status lines.
+struct FetchOutcome { bool ok = false; bool already_present = false; std::string err; };
+FetchOutcome fetch_voice_model(const VoiceModel& model,
+                               const std::string& dest_onnx,
+                               const std::function<void(const std::string&)>& progress = {});
 
 class Generator {
 public:
