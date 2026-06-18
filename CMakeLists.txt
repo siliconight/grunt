@@ -30,6 +30,7 @@ endif()
 add_executable(grunt
     src/main.cpp
     src/Engine.cpp
+    src/Prosody.cpp
     src/Types.cpp
     src/TextNormalizer.cpp
     src/PhonemeMapper.cpp
@@ -76,6 +77,7 @@ enable_testing()
 add_executable(grunt_tests
     tests/test_main.cpp
     src/Engine.cpp
+    src/Prosody.cpp
     src/Types.cpp
     src/TextNormalizer.cpp
     src/PhonemeMapper.cpp
@@ -122,6 +124,7 @@ if(GRUNT_BUILD_GUI)
     add_executable(grunt_gui
         src/gui_main.cpp
         src/Engine.cpp
+        src/Prosody.cpp
         src/Types.cpp
         src/TextNormalizer.cpp
     src/PhonemeMapper.cpp

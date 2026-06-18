@@ -4,6 +4,16 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.23] - 2026-06-18
+
+### Fixed
+- **Build fix: `src/Prosody.cpp` was missing from CMakeLists.txt.** The Prosody
+  module (added in 0.22.19 for punchy mode) was never added to the CMake source
+  lists, so CI failed at link time with "undefined reference to
+  voc::punchify_text / voc::sentence_silence_for" for all three targets (grunt,
+  grunt_tests, grunt_gui). Added src/Prosody.cpp to each. (The local glob build
+  picked it up automatically, which hid the gap; CMake uses an explicit list.)
+
 ## [0.22.22] - 2026-06-18
 
 ### Added
