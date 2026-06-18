@@ -19,6 +19,11 @@ FxParams params_for(const std::string& preset) {
     if (preset == "monster_ps1") return { 120, 4000, 2.2, 8,  3, 0.12 };
     if (preset == "robot_ps1")   return { 200, 5000, 2.8, 6,  2, 0.04 };
     if (preset == "muffled_mask")return { 150, 2200, 1.3, 10, 2, 0.08 };
+    // console: N64/PS2-era warmth — band-limited + lightly saturated but NOT
+    // bit-crushed/decimated into the harsh digital "robot" zone. decimate=1 (no
+    // sample-and-hold, the main robotic artifact), high bits=15 (barely any
+    // crush), gentle 7k rolloff, a touch of room so it isn't bone-dry/synthetic.
+    if (preset == "console")     return { 120, 7000, 1.25, 15, 1, 0.10 };
     // clean_ps1 default
     return { 150, 6000, 1.4, 12, 2, 0.06 };
 }

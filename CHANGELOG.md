@@ -4,6 +4,17 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.16] - 2026-06-18
+
+### Added
+- **New `console` FX preset — warm N64/PS2-era sound, less robotic.** Where the
+  PS1 presets lean on heavy bit-crush + sample-rate decimation (the harsh,
+  digital, "robotic" artifacts), `console` keeps the era's band-limited character
+  but drops decimation entirely (decimate=1), barely crushes (bits=15), uses a
+  gentle 7 kHz rolloff, light saturation for analog-ish warmth, and a touch of
+  room so it isn't bone-dry. Pick it in the GUI's style dropdown (or
+  `--style console` on the CLI) and assign it per-character by ear.
+
 ## [0.22.15] - 2026-06-18
 
 ### Changed

@@ -198,7 +198,7 @@ int main(int argc, char** argv) {
     bool show_advanced = false;
 
     const char* emotions[] = { "neutral", "urgent", "angry" };
-    const char* fxs[] = { "clean_ps1", "radio_ps1", "monster_ps1", "robot_ps1", "muffled_mask" };
+    const char* fxs[] = { "clean_ps1", "console", "radio_ps1", "monster_ps1", "robot_ps1", "muffled_mask" };
     const char* formats[] = { "ogg (Vorbis)", "wav" };
 
     // Character presets — the primary control. Loaded from data/characters.json
