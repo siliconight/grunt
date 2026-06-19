@@ -204,6 +204,22 @@ int main(int argc, char** argv) {
     // the complete UI. piper_ready is re-checked when the user runs setup.
     bool simple_mode = true;
     bool punchy_mode = false;  // punctuation->inflection toggle (Engine::Options.punchy)
+    // Efforts can render two ways: stitched from a grunt bank (authentic but needs
+    // a phoneme/grunt bank), or spoken through Piper as onomatopoeia (just works,
+    // sounds like the character). Spoken is the default so grunts make sound out
+    // of the box; flip off to A/B against the stitched bank.
+    bool effort_spoken = true;
+    auto effort_onomatopoeia = [](const std::string& id) -> std::string {
+        if (id == "laugh")      return "ha ha ha";
+        if (id == "pain_death") return "aaaargh";
+        if (id == "pain_hit")   return "ugh";
+        if (id == "exertion")   return "hnngh";
+        if (id == "fear")       return "aaah";
+        if (id == "gasp")       return "hah";
+        if (id == "yell")       return "aaaah";
+        if (id == "alert")      return "hey";
+        return id;  // unknown effort: just say its name
+    };
     bool piper_ready = !voc::detect_piper_cmd().empty();
     std::string setup_status;
 
@@ -416,8 +432,8 @@ int main(int argc, char** argv) {
         // Effort mode is the only one that still needs a loaded voice bank (it
         // selects phoneme units from the bank). Line and Onomatopoeia both speak
         // through Piper with no bank.
-        if (input_mode == 1 && !engine.voice_loaded()) {
-            status = "Effort mode needs a voice bank — Load or Generate one below."; return false;
+        if (input_mode == 1 && !effort_spoken && !engine.voice_loaded()) {
+            status = "Stitched-effort mode needs a voice bank — or switch on \"spoken\" efforts."; return false;
         }
         uint64_t s = lock_seed ? (uint64_t)seed
                                : (uint64_t)glfwGetTime() * 1000003ULL + 1;
@@ -449,10 +465,17 @@ int main(int argc, char** argv) {
             const std::string& eid = effort_ids[effort_idx];
             const Effort* ef = eid.empty() ? nullptr : effort_lib.find(eid);
             if (!ef) { status = "No effort selected (need data/efforts.json)."; return false; }
-            PhonemeSeq seq = effort_to_phonemes(*ef);
-            if (cid.empty()) emo = ef->emotion;      // character emotion_bias wins if a character is set
-            seq.emotion = emo;
-            last = engine.synth_vocalization(seq, ef->intensity, fx, s, opts);
+            if (effort_spoken) {
+                // Speak the effort as onomatopoeia through Piper — no bank, sounds
+                // like the character. Repeated letters drawl it (as onomatopoeia mode).
+                std::string sp = effort_onomatopoeia(eid);
+                last = engine.synth_speech(sp, speech_model, fx, opts, tune.speed);
+            } else {
+                PhonemeSeq seq = effort_to_phonemes(*ef);
+                if (cid.empty()) emo = ef->emotion;  // character emotion_bias wins if a character is set
+                seq.emotion = emo;
+                last = engine.synth_vocalization(seq, ef->intensity, fx, s, opts);
+            }
         } else if (input_mode == 2) {                // Onomatopoeia
             // Post-pivot: speak the sound straight through Piper (no bank), then
             // style it with the character FX — same path as Line. Repeated
@@ -543,8 +566,9 @@ int main(int argc, char** argv) {
                     ImGui::SetNextItemWidth(380);
                     ImGui::Combo("##seffort", &effort_idx, effort_label_ptrs.data(),
                                  (int)effort_label_ptrs.size());
-                    if (!engine.voice_loaded()) {
-                        ensure_effort_bank();  // silent build on first use
+                    ImGui::Checkbox("spoken (sounds like the voice)##seffmode", &effort_spoken);
+                    if (!effort_spoken && !engine.voice_loaded()) {
+                        ensure_effort_bank();  // stitched mode still needs a bank
                         if (!effort_bank_status.empty())
                             ImGui::TextDisabled("%s", effort_bank_status.c_str());
                     }
@@ -637,9 +661,10 @@ int main(int argc, char** argv) {
             ImGui::TextUnformatted("Effort");
             ImGui::Combo("##effort", &effort_idx, effort_label_ptrs.data(),
                          (int)effort_label_ptrs.size());
-            // Effort stitches a sound bank (not Piper speech). Build it silently
-            // the first time, so there's no visible setup step.
-            if (!engine.voice_loaded()) {
+            ImGui::Checkbox("spoken (sounds like the voice)##effmode", &effort_spoken);
+            // Stitched mode needs a sound bank; spoken mode (default) speaks
+            // through Piper and needs none. Build the bank silently if stitched.
+            if (!effort_spoken && !engine.voice_loaded()) {
                 if (piper_cmd.empty() && voc::detect_piper_cmd().empty()) {
                     ImGui::TextDisabled("(Set up the speech engine first — Simple mode's "
                                         "\"Set up speech engine\" button, or setup.bat.)");

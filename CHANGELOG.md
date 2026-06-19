@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.29] - 2026-06-19
+
+### Fixed
+- **Grunts/efforts now make sound (spoken through Piper), with an A/B toggle vs
+  the stitched bank.** The stitched-grunt path was rendering 0 units / silence:
+  it needs phoneme or grunt units, but the bank generator only makes word/syllable
+  units, so the selector matched nothing. Added a "spoken" mode (default ON) that
+  speaks each effort as onomatopoeia through Piper — laugh -> "ha ha ha",
+  pain_death -> "aaaargh", yell -> "aaaah", etc. — using the character's voice +
+  FX, so it just works with no bank. A "spoken" checkbox on the Effort picker
+  (Simple + Advanced) flips between this and the original stitched path, so the
+  two can be compared by ear. Spoken needs no bank; stitched still builds one.
+
 ## [0.22.28] - 2026-06-19
 
 ### Added
