@@ -4,6 +4,17 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.24] - 2026-06-18
+
+### Fixed
+- **No sound on Play (audio device was never opened).** The Simple-mode
+  "Make / Play" and the Advanced "Play" buttons called player.play() without
+  first initializing the audio output device, so clips rendered fine (and Save
+  .ogg worked perfectly) but nothing came out the speakers. Added the lazy
+  player.init() guard — the same one the bark-list/generate paths already had —
+  before every play call, so the device opens on first Play. (The bark-row Play
+  had the same gap; fixed too.)
+
 ## [0.22.23] - 2026-06-18
 
 ### Fixed

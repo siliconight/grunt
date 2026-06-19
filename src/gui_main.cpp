@@ -480,8 +480,10 @@ int main(int argc, char** argv) {
                 ImGui::SetNextItemWidth(380);
                 ImGui::InputText("##stext", text, sizeof(text));
 
-                if (ImGui::Button("Make / Play") && do_synth())
+                if (ImGui::Button("Make / Play") && do_synth()) {
+                    if (!player_ready) player_ready = player.init(engine.sample_rate());
                     player.play(last.audio.samples);
+                }
                 ImGui::SameLine();
                 if (ImGui::Button("Save .ogg")) {
                     if (do_synth()) {
@@ -606,6 +608,7 @@ int main(int argc, char** argv) {
 
         // --- Play / Stop: immediate payoff, right under the input ---
         if (ImGui::Button("Play") && do_synth()) {
+            if (!player_ready) player_ready = player.init(engine.sample_rate());
             player.play(last.audio.samples);
         }
         ImGui::SameLine();
@@ -639,7 +642,11 @@ int main(int argc, char** argv) {
                 ImGui::SameLine();
                 if (ImGui::Button("Play") && barks[i].text[0]) {
                     SynthResult r = synth_text(barks[i].text);
-                    if (r.ok) { last = r; player.play(last.audio.samples); }
+                    if (r.ok) {
+                        last = r;
+                        if (!player_ready) player_ready = player.init(engine.sample_rate());
+                        player.play(last.audio.samples);
+                    }
                     else if (!r.missing_model.empty()) {
                         needs_voice = r.missing_model;
                         status = "Voice '" + needs_voice + "' isn't downloaded yet.";
