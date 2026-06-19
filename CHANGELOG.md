@@ -4,6 +4,15 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.25] - 2026-06-19
+
+### Changed
+- **Simple-mode "Save .ogg" now writes timestamped files into an exports/
+  folder.** Previously it saved as <character>.ogg in the working directory, so
+  re-saving the same character overwrote the last clip. Now each save goes to
+  exports/<character>_YYYYMMDD_HHMMSS.<ext> (folder created next to grunt if
+  absent), so saves never collide and you keep every take.
+
 ## [0.22.24] - 2026-06-18
 
 ### Fixed

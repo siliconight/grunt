@@ -41,6 +41,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include <ctime>
 #include <algorithm>
 #include <fstream>
 #include <cstdlib>
@@ -332,6 +333,24 @@ int main(int argc, char** argv) {
     std::string gen_status;
 
     bool player_ready = false;
+
+    // Build a timestamped path inside an exports/ folder next to grunt, so saves
+    // never overwrite each other: exports/<base>_YYYYMMDD_HHMMSS.<ext>.
+    auto timestamped_export_path = [&](const std::string& base, const char* ext) -> std::string {
+        std::string dir = voc::resource_path("exports");
+        std::error_code ec;
+        std::filesystem::create_directories(dir, ec);
+        std::time_t t = std::time(nullptr);
+        std::tm tm{};
+#if defined(_WIN32)
+        localtime_s(&tm, &t);
+#else
+        localtime_r(&t, &tm);
+#endif
+        char stamp[32];
+        std::strftime(stamp, sizeof(stamp), "%Y%m%d_%H%M%S", &tm);
+        return dir + "/" + base + "_" + stamp + "." + ext;
+    };
     SynthResult last; // cached last render for export
     std::string needs_voice;   // non-empty when last synth failed only for a missing voice
     std::string fetch_status;  // progress text for the download button
@@ -489,8 +508,9 @@ int main(int argc, char** argv) {
                     if (do_synth()) {
                         AudioFormat fmt = ogg_supported() ? AudioFormat::Ogg : AudioFormat::Wav;
                         const char* ext = (fmt == AudioFormat::Ogg) ? "ogg" : "wav";
-                        std::string fn = std::string(char_ids[character_idx].empty()
-                                          ? "line" : char_ids[character_idx]) + "." + ext;
+                        std::string base = char_ids[character_idx].empty()
+                                          ? "line" : char_ids[character_idx];
+                        std::string fn = timestamped_export_path(base, ext);
                         std::string err;
                         if (write_audio(fn, last.audio, fmt, 0.4f, err)) {
                             std::error_code ec;
