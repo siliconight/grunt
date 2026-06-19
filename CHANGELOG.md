@@ -4,6 +4,20 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.27] - 2026-06-19
+
+### Fixed
+- **setup.bat now fetches ALL voices the characters need + pre-builds the effort
+  bank, so everything works out of the gate.** It was downloading only three
+  voices (norman/john/bryce) and missing piper-en_US-ljspeech — the female voice
+  that the yelling_woman and woman_raspy characters use — so those hit a
+  missing-voice wall after setup. Added ljspeech to the fetch loop (all four base
+  voices now present). Also added a step that pre-builds the grunt/effort sound
+  bank (voices/effort_bank) so grunts/efforts play immediately and offline; if it
+  fails it's non-fatal (the GUI builds it on first use as fallback). Steps
+  renumbered 1/4–4/4. Net: type words -> voices; play grunts; play onomatopoeia;
+  every character ready, no missing-voice surprises.
+
 ## [0.22.26] - 2026-06-19
 
 ### Changed

@@ -35,7 +35,7 @@ if not defined PIPER_CMD ( py -m piper --help >NUL 2>&1 && set "PIPER_CMD=py -m 
 if defined PIPER_CMD (
   echo [ok] Piper already available via: !PIPER_CMD!
 ) else (
-  echo [1/3] Installing Piper TTS engine via pip...
+  echo [1/4] Installing Piper TTS engine via pip...
   set "PY="
   python --version >NUL 2>&1 && set "PY=python"
   if not defined PY ( py --version >NUL 2>&1 && set "PY=py" )
@@ -59,8 +59,8 @@ set "GRUNT_PIPER_CMD=!PIPER_CMD!"
 REM --- 2. Voices the four archetypes use (public domain, auto-downloaded) ---
 REM   norman -> jersey + russian   john -> cop   bryce -> delco
 echo(
-echo [2/3] Downloading archetype voices (public domain)...
-for %%V in (piper-en_US-norman piper-en_US-john piper-en_US-bryce) do (
+echo [2/4] Downloading voices (public domain)...
+for %%V in (piper-en_US-norman piper-en_US-john piper-en_US-bryce piper-en_US-ljspeech) do (
   echo   - %%V
   "%GRUNT%" fetch-voice --model %%V
   if errorlevel 1 ( echo [X] could not download %%V. Check your connection. & goto :fail )
@@ -69,7 +69,7 @@ echo [ok] archetype voices ready
 
 REM --- 3. Bake the four ready-to-use NPC bark sets -------------------------
 echo(
-echo [3/3] Baking the four NPC bark sets...
+echo [3/4] Baking the four NPC bark sets...
 call :bake cop      cop_barks.csv      cop_vo
 if errorlevel 1 goto :fail
 call :bake jersey   jersey_barks.csv   jersey_vo
@@ -78,6 +78,10 @@ call :bake russian  russian_barks.csv  russian_vo
 if errorlevel 1 goto :fail
 call :bake delco    delco_barks.csv    delco_vo
 if errorlevel 1 goto :fail
+
+echo [4/4] Building the grunt/effort sound bank (yell, pain, laugh)...
+"%GRUNT%" generate --units examples\barks.csv --voice voices\effort_bank --model piper-en_US-norman --unit-type word
+if errorlevel 1 ( echo [!] effort bank build failed - efforts will build on first use in the app instead. )
 
 echo(
 echo ============================================
