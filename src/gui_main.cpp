@@ -251,6 +251,8 @@ int main(int argc, char** argv) {
     struct Bark { char key[64]; char text[256]; };
     std::vector<Bark> barks;
     char bark_out_dir[256] = "delco_vo";
+    char bark_csv_path[256] = "my_barks.csv";  // save/load target for the list
+    std::string bark_io_status;
     std::string bake_status;
     auto load_tuning_from_character = [&](const std::string& cid) {
         tune = Tuning{};                       // neutral defaults (the "(none)" case)
@@ -680,6 +682,57 @@ int main(int argc, char** argv) {
             }
             ImGui::SameLine();
             if (ImGui::Button("+ blank row")) { barks.push_back(Bark{}); }
+
+            // Save/Load the list as CSV (same key,text[,character] format as the
+            // shipped examples/*_barks.csv), so a set survives between sessions,
+            // is hand-editable in Excel/a text editor, and the example sets load
+            // straight in as starting points.
+            ImGui::SetNextItemWidth(260);
+            ImGui::InputText("list file", bark_csv_path, sizeof(bark_csv_path));
+            ImGui::SameLine();
+            if (ImGui::Button("Save list")) {
+                std::ofstream f(bark_csv_path);
+                if (f) {
+                    f << "key,text,character\n";
+                    for (auto& b : barks)
+                        if (b.key[0] && b.text[0]) f << b.key << "," << b.text << "\n";
+                    std::error_code ec;
+                    bark_io_status = "Saved " + std::to_string(barks.size()) + " lines to "
+                                   + std::filesystem::absolute(bark_csv_path, ec).string();
+                } else bark_io_status = "Could not write " + std::string(bark_csv_path);
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Load list")) {
+                std::string path = bark_csv_path;
+                if (!std::filesystem::exists(path)) {
+                    std::string alt = voc::resource_path(std::string("examples/") + bark_csv_path);
+                    if (std::filesystem::exists(alt)) path = alt;  // allow loading shipped sets by name
+                }
+                std::ifstream f(path);
+                if (f) {
+                    barks.clear();
+                    std::string line; bool first = true;
+                    while (std::getline(f, line)) {
+                        if (!line.empty() && line.back() == '\r') line.pop_back();
+                        if (line.empty() || line[0] == '#') continue;
+                        if (first) { first = false;
+                            if (line.rfind("key,", 0) == 0) continue; }  // skip header
+                        auto c1 = line.find(',');
+                        if (c1 == std::string::npos) continue;
+                        std::string key = line.substr(0, c1);
+                        std::string rest = line.substr(c1 + 1);
+                        auto c2 = rest.find(',');           // drop trailing ,character if present
+                        std::string txt = (c2 == std::string::npos) ? rest : rest.substr(0, c2);
+                        Bark b{};
+                        std::snprintf(b.key, sizeof(b.key), "%s", key.c_str());
+                        std::snprintf(b.text, sizeof(b.text), "%s", txt.c_str());
+                        if (b.key[0] && b.text[0]) barks.push_back(b);
+                    }
+                    bark_io_status = "Loaded " + std::to_string(barks.size()) + " lines from " + path;
+                } else bark_io_status = "Could not find " + std::string(bark_csv_path)
+                                      + " (tried examples/ too)";
+            }
+            if (!bark_io_status.empty()) ImGui::TextDisabled("%s", bark_io_status.c_str());
 
             int remove_idx = -1;
             for (int i = 0; i < (int)barks.size(); ++i) {

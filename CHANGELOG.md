@@ -4,6 +4,19 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.28] - 2026-06-19
+
+### Added
+- **Bark lists now save and load as CSV.** The bark list (build a whole NPC's
+  voice set, then bake it in one pass) was session-only — close grunt and your
+  list was gone. Added "Save list" / "Load list" buttons writing the same
+  key,text[,character] format as the shipped examples/*_barks.csv. So a set
+  survives between sessions, is hand-editable in Excel or a text editor, and —
+  because it's the same format — the four example archetype sets (cop_barks.csv,
+  jersey_barks.csv, russian_barks.csv, delco_barks.csv) load straight in as
+  starting points (Load list with just the filename also checks examples/).
+  Foundation for the rest of the easy-bark workflow.
+
 ## [0.22.27] - 2026-06-19
 
 ### Fixed

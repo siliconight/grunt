@@ -466,7 +466,7 @@ int cmd_generate(int argc, char** argv) {
 }
 
 // grunt version — bump with each tagged release.
-static const char* kGruntVersion = "0.22.27";
+static const char* kGruntVersion = "0.22.28";
 
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.
