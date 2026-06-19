@@ -4,6 +4,17 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.26] - 2026-06-19
+
+### Changed
+- **Effort grunts now just work — pickable in Simple mode, no setup step.** Simple
+  mode gained a "Say a line / Make a grunt" toggle; choosing "Make a grunt" shows
+  the effort list (yell, pain, laugh, ...). The stitched-grunt sound bank these
+  need is now built + loaded SILENTLY on first use (was a "Effort grunts need a
+  sound bank — make one now" button), so the user never sees a setup step. Same
+  silent auto-build replaces the button in Advanced mode's Effort path too. (Kept
+  the authentic stitched-grunt approach; only the friction is gone.)
+
 ## [0.22.25] - 2026-06-19
 
 ### Changed

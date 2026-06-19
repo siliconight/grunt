@@ -351,6 +351,38 @@ int main(int argc, char** argv) {
         std::strftime(stamp, sizeof(stamp), "%Y%m%d_%H%M%S", &tm);
         return dir + "/" + base + "_" + stamp + "." + ext;
     };
+
+    // Effort grunts stitch a sound bank (not Piper speech). Build + load that
+    // bank silently the first time it's needed, so efforts "just work" with no
+    // visible setup step. Returns true once a bank is loaded. Sets effort_bank_status
+    // for the (brief) build. Guarded so it only attempts once per session unless
+    // it fails. Needs Piper available.
+    bool effort_bank_tried = false;
+    std::string effort_bank_status;
+    auto ensure_effort_bank = [&]() -> bool {
+        if (engine.voice_loaded()) return true;
+        if (effort_bank_tried) return engine.voice_loaded();
+        std::string pc = piper_cmd.empty() ? voc::detect_piper_cmd() : piper_cmd;
+        if (pc.empty()) { effort_bank_status = "Set up the speech engine first."; return false; }
+        effort_bank_tried = true;
+#if defined(_WIN32)
+        _putenv_s("GRUNT_PIPER_CMD", pc.c_str());
+#else
+        setenv("GRUNT_PIPER_CMD", pc.c_str(), 1);
+#endif
+        GenerateOptions opt;
+        opt.units_csv     = voc::resource_path("examples/barks.csv");
+        opt.voice_dir     = voc::resource_path("voices/effort_bank");
+        opt.model_id      = gen_models[gen_model_idx];
+        opt.registry_path = voc::resource_path("data/voice_models.json");
+        opt.unit_type     = "word";
+        GenerateResult r = generate_bank(opt);
+        if (!r.ok) { effort_bank_status = "Could not build grunt bank: " + r.error; effort_bank_tried = false; return false; }
+        std::string err;
+        if (!engine.load_voice(opt.voice_dir, err)) { effort_bank_status = "Bank built but load failed: " + err; return false; }
+        effort_bank_status.clear();
+        return true;
+    };
     SynthResult last; // cached last render for export
     std::string needs_voice;   // non-empty when last synth failed only for a missing voice
     std::string fetch_status;  // progress text for the download button
@@ -494,10 +526,27 @@ int main(int argc, char** argv) {
                     load_tuning_from_character(char_ids[character_idx]);
                     tuned_for_idx = character_idx;
                 }
-                input_mode = 0;  // Simple mode is always Line (spoken text)
-                ImGui::TextUnformatted("What do they say?");
+                // Simple mode offers two things: speak a line, or make a grunt.
+                const char* smodes[] = { "Say a line", "Make a grunt" };
+                if (input_mode > 1) input_mode = 1;  // Simple only exposes Line(0)/Effort(1)
                 ImGui::SetNextItemWidth(380);
-                ImGui::InputText("##stext", text, sizeof(text));
+                ImGui::Combo("##smode", &input_mode, smodes, 2);
+
+                if (input_mode == 0) {
+                    ImGui::TextUnformatted("What do they say?");
+                    ImGui::SetNextItemWidth(380);
+                    ImGui::InputText("##stext", text, sizeof(text));
+                } else {
+                    ImGui::TextUnformatted("Which grunt?");
+                    ImGui::SetNextItemWidth(380);
+                    ImGui::Combo("##seffort", &effort_idx, effort_label_ptrs.data(),
+                                 (int)effort_label_ptrs.size());
+                    if (!engine.voice_loaded()) {
+                        ensure_effort_bank();  // silent build on first use
+                        if (!effort_bank_status.empty())
+                            ImGui::TextDisabled("%s", effort_bank_status.c_str());
+                    }
+                }
 
                 if (ImGui::Button("Make / Play") && do_synth()) {
                     if (!player_ready) player_ready = player.init(engine.sample_rate());
@@ -586,35 +635,16 @@ int main(int argc, char** argv) {
             ImGui::TextUnformatted("Effort");
             ImGui::Combo("##effort", &effort_idx, effort_label_ptrs.data(),
                          (int)effort_label_ptrs.size());
-            // Effort is the one mode that needs a loaded sound bank (it stitches
-            // grunt units, not Piper speech). If none's loaded, make it a
-            // one-click fix instead of a dead-end "needs a bank" message.
+            // Effort stitches a sound bank (not Piper speech). Build it silently
+            // the first time, so there's no visible setup step.
             if (!engine.voice_loaded()) {
-                ImGui::TextWrapped("Effort grunts need a sound bank (they're stitched, "
-                                   "not spoken). Make one now:");
-                if (piper_cmd.empty()) {
+                if (piper_cmd.empty() && voc::detect_piper_cmd().empty()) {
                     ImGui::TextDisabled("(Set up the speech engine first — Simple mode's "
                                         "\"Set up speech engine\" button, or setup.bat.)");
-                } else if (ImGui::Button("Generate a sound bank")) {
-#if defined(_WIN32)
-                    _putenv_s("GRUNT_PIPER_CMD", piper_cmd.c_str());
-#else
-                    setenv("GRUNT_PIPER_CMD", piper_cmd.c_str(), 1);
-#endif
-                    GenerateOptions opt;
-                    opt.units_csv     = voc::resource_path("examples/barks.csv");
-                    opt.voice_dir     = voc::resource_path("voices/effort_bank");
-                    opt.model_id      = gen_models[gen_model_idx];
-                    opt.registry_path = voc::resource_path("data/voice_models.json");
-                    opt.unit_type     = "word";
-                    GenerateResult r = generate_bank(opt);
-                    if (r.ok) {
-                        std::string err;
-                        if (engine.load_voice(opt.voice_dir, err)) {
-                            if (!player_ready) player_ready = player.init(engine.sample_rate());
-                            status = "Sound bank ready — pick an effort and press Play.";
-                        } else status = "Bank generated but load failed: " + err;
-                    } else status = "Bank generation failed: " + r.error;
+                } else {
+                    ensure_effort_bank();
+                    if (!effort_bank_status.empty())
+                        ImGui::TextDisabled("%s", effort_bank_status.c_str());
                 }
             }
         } else {                                     // Onomatopoeia — free text
