@@ -244,6 +244,34 @@ int cmd_verify(int argc, char** argv) {
     return r.passed ? 0 : 1;
 }
 
+// Split one CSV line into fields, honoring RFC-4180 double-quoting so a quoted
+// field may contain commas. Unquoted lines parse exactly as the old code did.
+static std::vector<std::string> split_csv(const std::string& line) {
+    std::vector<std::string> out;
+    std::string cur;
+    bool in_quotes = false;
+    for (size_t i = 0; i < line.size(); ++i) {
+        char c = line[i];
+        if (in_quotes) {
+            if (c == '"') {
+                if (i + 1 < line.size() && line[i + 1] == '"') { cur += '"'; ++i; } // "" -> "
+                else in_quotes = false;
+            } else {
+                cur += c;
+            }
+        } else if (c == '"') {
+            in_quotes = true;
+        } else if (c == ',') {
+            out.push_back(cur);
+            cur.clear();
+        } else {
+            cur += c;
+        }
+    }
+    out.push_back(cur);
+    return out;
+}
+
 // batch: CSV of name,voice,text,emotion[,fx] -> folder of named clips + manifest
 int cmd_batch(int argc, char** argv) {
     Args a = parse_args(argc, argv, 2);
@@ -320,8 +348,7 @@ int cmd_batch(int argc, char** argv) {
         if (!line.empty() && line.back() == '\r') line.pop_back();  // tolerate CRLF
         { size_t q0 = line.find_first_not_of(" \t");
           if (q0 == std::string::npos || line[q0] == '#') continue; }  // blank/comment
-        std::vector<std::string> f; std::stringstream ss(line); std::string cell;
-        while (std::getline(ss, cell, ',')) f.push_back(cell);
+        std::vector<std::string> f = split_csv(line);
         if (f.size() < 2) continue;
         if (!header_skipped && (f[0] == "key" || f[0] == "name")) { header_skipped = true; continue; }
         header_skipped = true;
@@ -466,7 +493,7 @@ int cmd_generate(int argc, char** argv) {
 }
 
 // grunt version — bump with each tagged release.
-static const char* kGruntVersion = "0.22.29";
+static const char* kGruntVersion = "0.22.30";
 
 // Locate the bundled demo bank relative to either the CWD or the executable's
 // repo layout, so `grunt quickstart` works from a build dir or the repo root.

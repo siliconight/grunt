@@ -4,6 +4,18 @@ All notable changes to grunt are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow
 [Semantic Versioning](https://semver.org/).
 
+## [0.22.30] - 2026-06-19
+
+### Fixed
+- **batch: CSV parser now honors RFC-4180 quoting, so fields may contain commas
+  (needed for gaba VO export).** The batch CSV reader split on every comma and
+  ignored quotes, so a quoted dialogue line like "Need a blade sharpened,
+  traveler?" mis-split into the wrong field count and was skipped. Added a small
+  RFC-4180-aware splitter (handles commas inside double-quoted fields and "" as
+  an escaped quote). Unquoted lines parse exactly as before — bundled
+  examples/*_barks.csv bake identically. No new deps, no CLI/output change. This
+  lets a gaba-exported conversation VO CSV bake every row.
+
 ## [0.22.29] - 2026-06-19
 
 ### Fixed
